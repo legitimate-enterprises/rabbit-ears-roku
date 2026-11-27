@@ -191,7 +191,7 @@ function apiNames() as object
         "rungBitrate", "rungHeight", "runtimeMinutes", "runtimeMs", "sampleRate", "scanHour"
         "seasonNumber", "securitySchemes", "seekPreviewId", "segmentFormats", "serverName"
         "serverTime", "serverTimeMs", "serverWide", "sessionId", "setupRequired", "shareProfileId", "showId", "signIn", "sizeBytes"
-        "songCount", "songId", "sortName", "sourceUrl", "stallCount", "startMs", "startedAt"
+        "songCount", "songId", "sortName", "sortTitle", "sourceUrl", "stallCount", "startMs", "startedAt"
         "startsAt", "stationId", "storageTotalBytes", "storageUsedBytes", "streamIndex", "streamKind"
         "streamUrl", "subtitleAction", "subtitleFormats", "subtitleIsText", "subtitleTrackId"
         "taskId", "tasksPaused", "thisDevice", "tmdbConfigured", "tmdbId", "tmdbKey", "toName", "toProfileId", "trackId", "trackNumber"

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Rabbit Ears API
-  version: 0.21.0
+  version: 0.23.0
   description: |
     REST API of the Rabbit Ears media server. This document's version is the
     server's. A breaking change takes a new path; additive changes bump the
@@ -1237,7 +1237,7 @@ paths:
     get:
       operationId: listShowProgress
       tags: [profiles]
-      summary: The profile's progress through each show it may see, by title.
+      summary: The profile's progress through each show it may see, by Item.sortTitle.
       description: >-
         Counts and the next episode cover only the seasons and episodes the
         profile may see. Episodes play in season order, specials (season 0
@@ -7313,8 +7313,9 @@ components:
     ItemSort:
       type: string
       description: |
-        title (the default) is by title, episodes and seasons by number;
-        added is newest first, as Recently added.
+        title (the default) is by title, movies and shows by
+        Item.sortTitle, episodes and seasons by number; added is newest
+        first, as Recently added.
       enum: [title, added]
 
     Resolution:
@@ -7332,6 +7333,16 @@ components:
         kind: { $ref: "#/components/schemas/ItemKind" }
         path: { type: string, description: The base name unless the caller is an admin. }
         parsedTitle: { type: string, description: Title parsed from the file or folder name. }
+        sortTitle:
+          type: string
+          description: >-
+            Movies and shows only: what they sort and file letters by. It is
+            the title shown (metadata.title, else parsedTitle) less one
+            leading English article ("the", "a" or "an", in any case)
+            followed by whitespace and more text, so "The Matrix" files
+            under M and "A Quiet Place" under Q, and changes with it.
+            Clients sort by it ignoring case, file one starting with
+            anything but a letter A to Z under #, and show the title.
         parsedYear: { type: integer }
         seasonNumber: { type: integer, description: Season 0 holds specials. }
         episodeNumber: { type: integer }
