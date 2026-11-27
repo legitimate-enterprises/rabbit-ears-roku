@@ -524,3 +524,42 @@ function libraryNextUpRoute(e as object) as object
     if e.state <> invalid then editionId = e.state.editionId
     return { to: "player", item: e.item, editionId: editionId }
 end function
+
+' Shuffle's rows for items, the episodes of the show series or of one of
+' its seasons, or with series invalid a collection's movies: every title
+' whose files are not all missing, watched or not, as { id, title } in one
+' random order, title what the Up next card names. random(n) answers 0 to
+' n - 1.
+function libraryShuffle(items as object, series as dynamic, random as function) as object
+    rows = []
+    for each item in items
+        if item.unavailable = invalid or not item.unavailable
+            title = itemTitle(item)
+            if series <> invalid then title = itemTitle(series) + " · " + formatEpisodeCode(item) + " · " + title
+            rows.Push({ id: item.id, title: title })
+        end if
+    end for
+    for i = rows.Count() - 1 to 1 step -1
+        j = random(i + 1)
+        t = rows[i]
+        rows[i] = rows[j]
+        rows[j] = t
+    end for
+    return rows
+end function
+
+function libraryDraw(n as integer) as integer
+    return Rnd(n) - 1
+end function
+
+' The player's params for the first of a Shuffle's rows, with the rest
+' queued after it; invalid with none. Every row plays from its start, which
+' positionMs 0 asks of startPlayback, where an absent one resumes.
+function libraryQueueNext(rows as object) as dynamic
+    if rows.Count() = 0 then return invalid
+    rest = []
+    for i = 1 to rows.Count() - 1
+        rest.Push(rows[i])
+    end for
+    return { item: rows[0], title: rows[0].title, queue: rest, shuffle: true, positionMs: 0 }
+end function

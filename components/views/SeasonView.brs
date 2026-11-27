@@ -33,14 +33,16 @@ sub draw()
         row.Push(m.controls.play)
         m.layout[0].Push("play")
     end if
-    m.controls.watched = uiButton(m.top, "watched", uiPick(m.allWatched, "Mark all unwatched", "Mark all watched"), "s", 0, 0, true)
-    row.Push(m.controls.watched)
-    m.layout[0].Push("watched")
+    m.controls.shuffle = uiButton(m.top, "shuffle", "Shuffle", "s", 0, 0, true, "shuffle")
+    row.Push(m.controls.shuffle)
+    m.layout[0].Push("shuffle")
     uiRow(row, 96, y + 62, 20)
+    m.controls.watched = uiButton(m.top, "watched", uiPick(m.allWatched, "Mark all unwatched", "Mark all watched"), "s", 96, y + 142, true)
+    m.layout.Push(["watched", "list"])
     overview = overviewOf(season)
     if overview = "" then overview = overviewOf(m.d.show)
-    l = uiLabel(m.top, overview, 26, false, "sub", 96, y + 150, 560)
-    l.maxLines = 6
+    l = uiLabel(m.top, overview, 26, false, "sub", 96, y + 230, 560)
+    l.maxLines = 4
     list = m.top.CreateChild("MarkupList")
     list.itemComponentName = "EpisodeItem"
     uiGridLayout(list, 712, 96, 1080, 163, 0, 12)
@@ -82,6 +84,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if not press or m.d = invalid then return false
     if key = "OK" and m.current = "play"
         play(m.episodes[m.focus])
+        return true
+    end if
+    if key = "OK" and m.current = "shuffle"
+        shuffle(m.episodes, m.d.show)
         return true
     end if
     if key = "OK" and m.current = "watched"

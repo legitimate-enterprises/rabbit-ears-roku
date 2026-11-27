@@ -1,14 +1,15 @@
 ' params: { item, editionId, positionMs, audioTrackId, together, queue, playlistId,
-' index }, or { station } to tune in. index is the playlist row playing.
+' index, shuffle }, or { station } to tune in. index is the playlist row playing.
 ' At the end Up next offers what the server plays next, Play now focused,
 ' and with Autoplay on plays it after a countdown; with nothing next, or
 ' together, the player closes.
 ' The remote does pause, seek and back; the overlay holds the seek bar,
 ' the pill, Subtitles and Next episode. The options key is never bound
 ' here. A Watch together keeps this player in step with the other
-' member's; queue is a playlist's play order after this one. A station
-' plays what is on with no pause, seek or knob, and between programs and
-' off schedule shows its name until it asks again. A title still playing
+' member's; queue is a playlist's play order after this one, or with
+' shuffle Shuffle's rows, which Up next and Next follow to the last with no
+' getUpNext. A station plays what is on with no pause, seek or knob, and
+' between programs and off schedule shows its name until it asks again. A title still playing
 ' on another device of the profile is asked about first: Move here, Watch
 ' together or Cancel. Another device may in turn take this player's
 ' session, which closes it, or ask it into a Watch together.
@@ -30,6 +31,7 @@ sub init()
     m.syncBusy = false
     m.notice = ""
     m.queue = []
+    m.shuffle = false
     m.upNext = invalid
     m.station = invalid
     m.tuning = false
@@ -208,6 +210,7 @@ sub begin(p as object)
     args.video = p.item.channelId <> invalid
     if p.playlistId <> invalid then args.playlistId = p.playlistId
     if p.queue <> invalid then m.queue = p.queue
+    if p.shuffle <> invalid then m.shuffle = p.shuffle
     if p.together <> invalid then syncStart(p.together)
     netLoad("play", args, "onStarted")
 end sub
@@ -224,9 +227,9 @@ sub onStarted(event as object)
         return
     end if
     m.info = r.data
-    ' Together, both stop at the end; a playlist goes on to its next row and
-    ' stops after its last, never on to the show's next episode.
-    if m.tg <> invalid or m.top.params.playlistId <> invalid then m.info.nextId = invalid
+    ' Together, both stop at the end; a playlist or Shuffle goes on to its
+    ' next row and stops after its last, never on to the show's next episode.
+    if m.tg <> invalid or m.top.params.playlistId <> invalid or m.shuffle then m.info.nextId = invalid
     if m.queue.Count() > 0 then m.info.nextId = m.queue[0].id
     m.watch.control = "run"
     m.report.control = "start"
@@ -509,6 +512,10 @@ end sub
 
 sub askUpNext()
     if m.upNext <> invalid or m.gone then return
+    if m.shuffle
+        offerUpNext(libraryQueueNext(m.queue))
+        return
+    end if
     p = m.top.params
     query = {}
     if p.playlistId <> invalid then query.playlistId = p.playlistId
@@ -519,12 +526,22 @@ end sub
 sub onUpNext(event as object)
     if m.gone then return
     r = event.getData()
-    if not r.ok or r.data = invalid
+    n = invalid
+    if r.ok and r.data <> invalid
+        n = playerUpNext(r.data, m.queue, m.top.params.index)
+        n.title = r.data.title
+    end if
+    offerUpNext(n)
+end sub
+
+' The Up next card for n, { item, title, ... } as leave plays it, or with
+' nothing next the player closes.
+sub offerUpNext(n as dynamic)
+    if n = invalid
         leave("back")
         return
     end if
-    m.upNext = playerUpNext(r.data, m.queue, m.top.params.index)
-    m.upNext.title = r.data.title
+    m.upNext = n
     m.autoplay = true
     for each p in m.global.me.profiles
         if p.id = m.global.profileId and p.autoplay <> invalid and p.autoplay = false then m.autoplay = false
@@ -720,7 +737,9 @@ sub leave(target as string)
     if n = invalid then return
     n.to = target
     if target = "next" then n.item = { id: m.info.nextId }
-    if target = "next" and m.upNext <> invalid
+    if target = "next" and m.shuffle
+        n.Append(libraryQueueNext(m.queue))
+    else if target = "next" and m.upNext <> invalid
         n.item = m.upNext.item
         n.editionId = m.upNext.editionId
         n.queue = m.upNext.queue

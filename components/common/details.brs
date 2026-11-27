@@ -1,5 +1,5 @@
 ' Shared by Details and Season: loading, the facts line, and the
-' watched and play actions.
+' watched, play and shuffle actions.
 
 sub load()
     netLoad("details", { itemId: m.top.params.item.id, profileId: m.global.profileId }, "onDetails")
@@ -74,6 +74,15 @@ sub play(item as object, positionMs = invalid as dynamic)
     n = { to: "player", item: item }
     if positionMs <> invalid then n.positionMs = positionMs
     if m.audioTrackId <> invalid then n.audioTrackId = m.audioTrackId
+    m.top.navigate = n
+end sub
+
+' Plays items, the episodes of the show series or of one of its seasons,
+' once each in random order.
+sub shuffle(items as object, series as object)
+    n = libraryQueueNext(libraryShuffle(items, series, libraryDraw))
+    if n = invalid then return
+    n.to = "player"
     m.top.navigate = n
 end sub
 

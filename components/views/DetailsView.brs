@@ -325,6 +325,8 @@ sub drawShow(item as object)
         m.controls.play = uiButton(m.top, "play", label, "p", 0, 0, false, "play")
         row.Push(m.controls.play)
     end if
+    m.controls.shuffle = uiButton(m.top, "shuffle", "Shuffle", "s", 0, 0, false, "shuffle")
+    row.Push(m.controls.shuffle)
     m.controls.watched = uiButton(m.top, "watched", uiPick(m.allWatched, "Mark all unwatched", "Mark all watched"), "s", 0, 0, false, "check")
     row.Push(m.controls.watched)
     uiRow(row, x, top + 64, 24)
@@ -354,8 +356,8 @@ sub drawShow(item as object)
         seasonRow.Push(id)
         sx = sx + 198
     end for
-    m.layout = [["play", "watched"], seasonRow]
-    if nextEp = invalid then m.layout[0] = ["watched"]
+    m.layout = [["play", "shuffle", "watched"], seasonRow]
+    if nextEp = invalid then m.layout[0] = ["shuffle", "watched"]
     related = relatedRows(y + 430)
     castRow(y + 430 + related, related > 0)
     m.current = m.layout[0][0]
@@ -477,6 +479,8 @@ sub onSelect(id as string)
     item = m.d.item
     if id = "play" and item.kind = "show"
         play(m.d.next)
+    else if id = "shuffle"
+        shuffle(m.episodes, item)
     else if id = "play"
         togetherPlay(invalid)
     else if id = "start"

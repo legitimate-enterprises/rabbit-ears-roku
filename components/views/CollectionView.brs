@@ -1,11 +1,12 @@
 ' params.collection is a Collection. Its movies are read in the server's
 ' order, release date or the household's own, kept as they arrive, and OK on
-' one opens its details.
+' one opens its details. Shuffle plays every one of them, read again whole.
 sub init()
     m.top.observeField("focusedChild", "uiRestore")
     m.controls = {}
     m.rings = {}
     m.layout = []
+    m.shuffling = false
 end sub
 
 sub load()
@@ -28,6 +29,10 @@ sub onMovies(event as object)
     y = 476 + Int(title.boundingRect().height) + 12
     uiFacts(m.top, [{ text: collectionCaption(c) }], 96, y)
     y = y + 56
+    if m.movies.Count() > 0
+        m.controls.shuffle = uiButton(m.top, "shuffle", "Shuffle", "s", 96, y, true, "shuffle")
+        y = y + 88
+    end if
     if collectionOrdered(c)
         uiChip(m.top, "In your order", "dim", "order", 48, 24).translation = [96, y]
         y = y + 64
@@ -48,7 +53,7 @@ sub onMovies(event as object)
     list.drawFocusFeedback = false
     list.observeFieldScoped("itemSelected", "onMovie")
     m.controls.movies = list
-    m.layout = [["movies"]]
+    m.layout = [["shuffle", "movies"]]
     root = CreateObject("roSGNode", "ContentNode")
     addRows(root, m.movies)
     list.content = root
@@ -77,3 +82,23 @@ end sub
 sub onMovie(event as object)
     m.top.navigate = { to: "details", item: m.movies[event.getData()] }
 end sub
+
+sub onShuffle(event as object)
+    m.shuffling = false
+    r = event.getData()
+    if not r.ok then return
+    n = libraryQueueNext(libraryShuffle(r.data, invalid, libraryDraw))
+    if n = invalid then return
+    n.to = "player"
+    m.top.navigate = n
+end sub
+
+function onKeyEvent(key as string, press as boolean) as boolean
+    if not press or m.controls.movies = invalid then return false
+    if key = "OK" and m.current = "shuffle"
+        if not m.shuffling then netLoad("rest", { op: "listCollectionMovies", params: { collectionId: m.top.params.collection.id }, query: {}, offset: 0 }, "onShuffle")
+        m.shuffling = true
+        return true
+    end if
+    return uiArrow(key)
+end function

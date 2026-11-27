@@ -502,3 +502,63 @@ sub testShowResumeBarIsItsNextEpisodesWhenThatOneIsStarted()
     end for
     assertEqual(libraryNextEpisodeFraction(eps, all), invalid, "all watched")
 end sub
+
+' A draw that always takes the first of the rows left, so a shuffle's order
+' is known.
+function drawFirst(n as integer) as integer
+    GetGlobalAA().draws.Push(n)
+    return 0
+end function
+
+function episode(id as integer, season as integer, number as integer) as object
+    return { id: id, kind: "episode", parsedTitle: "Ep" + id.ToStr(), seasonNumber: season, episodeNumber: number }
+end function
+
+sub testShuffleIsOneFlatOrderAcrossSeasonsWithSpecials()
+    GetGlobalAA().draws = []
+    eps = [episode(11, 1, 1), episode(12, 1, 2), episode(21, 2, 1), episode(1, 0, 1)]
+    rows = libraryShuffle(eps, { parsedTitle: "Show" }, drawFirst)
+    ids = []
+    for each r in rows
+        ids.Push(r.id)
+    end for
+    assertEqual(ids, [12, 21, 1, 11], "season 1 split up, the special among them")
+    assertEqual(GetGlobalAA().draws, [4, 3, 2], "each row drawn from those not yet placed")
+    assertEqual(rows[0].title, "Show · S1 E2 · Ep12", "the card names the episode as getUpNext does")
+end sub
+
+sub testShuffleSkipsOnlyTitlesWhoseFilesAreMissing()
+    GetGlobalAA().draws = []
+    movies = [{ id: 1, parsedTitle: "A" }, { id: 2, parsedTitle: "B", unavailable: true }, { id: 3, parsedTitle: "C", unavailable: false }]
+    rows = libraryShuffle(movies, invalid, drawFirst)
+    assertEqual(rows, [{ id: 3, title: "C" }, { id: 1, title: "A" }], "a movie's card names the movie")
+end sub
+
+sub testShuffleOfNothingOrOneTitle()
+    GetGlobalAA().draws = []
+    assertEqual(libraryShuffle([], invalid, drawFirst), [])
+    assertEqual(libraryQueueNext([]), invalid, "no queue")
+    assertEqual(libraryShuffle([{ id: 7, parsedTitle: "Only" }], invalid, drawFirst), [{ id: 7, title: "Only" }])
+    assertEqual(GetGlobalAA().draws, [], "nothing to draw")
+end sub
+
+sub testTheRealDrawStaysInRange()
+    for i = 1 to 200
+        j = libraryDraw(3)
+        if j < 0 or j > 2 then assertEqual(j, "0 to 2")
+    end for
+end sub
+
+' The same rows play each from its start, in order, and stop after the last.
+sub testAShuffledQueuePlaysEachRowFromItsStartToTheEnd()
+    n = libraryQueueNext([{ id: 3, title: "C" }, { id: 1, title: "A" }])
+    assertEqual(n.item.id, 3, "the first row")
+    assertEqual(n.positionMs, 0, "from the start, not resumed")
+    assertTrue(n.shuffle, "the player follows the queue, not getUpNext")
+    assertEqual(n.title, "C", "the Up next card's title")
+    n = libraryQueueNext(n.queue)
+    assertEqual(n.item.id, 1, "the next row")
+    assertEqual(n.positionMs, 0, "a later row from the start too")
+    assertEqual(n.queue, [], "the last row")
+    assertEqual(libraryQueueNext(n.queue), invalid, "nothing after it")
+end sub
