@@ -211,13 +211,16 @@ function libraryStoredSort(stored as string) as string
     return "added"
 end function
 
-' The web grid's sorts: "added" newest first, "title" A to Z, "watched"
-' most recently played first by libraryStanding, and "year" newest first by
-' parsed year. Unplayed and undated items go last.
+' The web grid's sorts: "added" newest first, "title" A to Z by the
+' server's sortTitle, else the title, "watched" most recently played first
+' by libraryStanding, and "year" newest first by parsed year. Unplayed and
+' undated items go last.
 function librarySort(items as object, by as string, states = {} as object, progress = {} as object) as object
     list = []
     for each i in items
-        key = LCase(itemTitle(i))
+        key = i.sortTitle
+        if key = invalid then key = itemTitle(i)
+        key = LCase(key)
         if by = "added" then key = i.addedAt
         if by = "year"
             key = 0

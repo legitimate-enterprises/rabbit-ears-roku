@@ -134,6 +134,11 @@ sub testSortByTitle()
     assertEqual([itemTitle(list[0]), itemTitle(list[1]), itemTitle(list[2])], ["a", "b", "c"])
 end sub
 
+sub testSortByTitleFilesByTheServersSortTitle()
+    items = [{ id: 1, parsedTitle: "The Matrix", sortTitle: "Matrix" }, { id: 2, parsedTitle: "A Quiet Place", sortTitle: "quiet Place" }, { id: 3, parsedTitle: "Die Hard", sortTitle: "Die Hard" }, { id: 4, parsedTitle: "2001", sortTitle: "2001" }, { id: 5, parsedTitle: "Brazil" }]
+    assertEqual(ids(librarySort(items, "title")), [4, 5, 3, 1, 2], "digits first, then D, M, Q ignoring case; no sortTitle sorts by the title")
+end sub
+
 sub testSortByYearNewestFirst()
     list = librarySort([{ id: 1, parsedTitle: "a", parsedYear: 1995 }, { id: 2, parsedTitle: "b" }, { id: 3, parsedTitle: "c", parsedYear: 2024 }], "year")
     assertEqual(ids(list), [3, 1, 2])
