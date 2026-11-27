@@ -1,11 +1,11 @@
 // Runs scripts/release.sh against a fake Roku in developer mode: a server
 // that demands digest credentials and answers the installer, the packager
 // and the package download with the page text a device gives. The script
-// runs from a copy beside a stub build and a stub gh, so nothing here
-// touches build/ or reaches GitHub.
+// runs from a copy, in a git repository of five commits, beside a stub build
+// and a stub gh, so nothing here touches build/ or reaches GitHub.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -72,9 +72,11 @@ function workspace() {
   const dir = mkdtempSync(join(tmpdir(), "roku-release-"));
   mkdirSync(join(dir, "scripts"));
   mkdirSync(join(dir, "bin"));
-  copyFileSync(new URL("../scripts/release.sh", import.meta.url), join(dir, "scripts/release.sh"));
-  chmodSync(join(dir, "scripts/release.sh"), 0o755);
-  writeFileSync(join(dir, "manifest"), "title=Rabbit Ears\nmajor_version=7\nminor_version=2\nbuild_version=5\n");
+  for (const script of ["release.sh", "cut-release.sh"]) {
+    copyFileSync(new URL(`../scripts/${script}`, import.meta.url), join(dir, "scripts", script));
+    chmodSync(join(dir, "scripts", script), 0o755);
+  }
+  writeFileSync(join(dir, "manifest"), "title=Rabbit Ears\nmajor_version=7\nminor_version=2\n");
   writeFileSync(join(dir, "Makefile"), "build:\n\tmkdir -p build && printf zip > build/rabbit-ears.zip\n");
   // A release that exists already refuses create, as gh does.
   writeFileSync(join(dir, "bin/gh"), '#!/bin/sh\necho "$*" >> gh.log\n[ "$2" != create ] || [ -z "$GH_EXISTS" ]\n');
@@ -82,6 +84,10 @@ function workspace() {
   // Records each curl command line, which any process listing on the runner shows.
   writeFileSync(join(dir, "bin/curl"), '#!/bin/sh\nprintf \'%s\\n\' "$*" >> curl.log\nexec /usr/bin/curl "$@"\n');
   chmodSync(join(dir, "bin/curl"), 0o755);
+  const git = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: dir });
+  git("init", "--quiet");
+  git("add", ".");
+  for (let i = 0; i < 5; i++) git("commit", "--quiet", "--allow-empty", "--no-gpg-sign", "-m", `c${i}`);
   return dir;
 }
 
@@ -156,12 +162,12 @@ test("a missing secret fails before the build, naming the secret", () =>
     assert.deepEqual(roku.requests, []);
   }));
 
-test("a tag the manifest does not state fails before the build", async () => {
+test("a tag that is not the version of HEAD fails before the build", async () => {
   for (const tag of ["v7.2.6", "v7.2", "roku-v7", "7.2.5"]) {
     await withRoku({}, async (roku, dir) => {
       const { code, out } = await release(dir, roku.host, {}, tag);
       assert.notEqual(code, 0, tag);
-      assert.match(out, new RegExp(`${tag} is not v7\\.2\\.5, the version manifest states`), tag);
+      assert.match(out, new RegExp(`${tag} is not v7\\.2\\.5, the version of HEAD`), tag);
       assert.equal(read(dir, "build/rabbit-ears.zip"), undefined);
     });
   }
@@ -215,11 +221,11 @@ test("a release outside CI is refused before anything else", () =>
     assert.deepEqual(roku.requests, []);
   }));
 
-test("a tag is compared to the manifest's version as text, not a pattern", () =>
+test("a tag is compared to the version as text, not a pattern", () =>
   withRoku({}, async (roku, dir) => {
     const { code, out } = await release(dir, roku.host, {}, "v7x2x5");
     assert.notEqual(code, 0);
-    assert.match(out, /v7x2x5 is not v7\.2\.5, the version manifest states/);
+    assert.match(out, /v7x2x5 is not v7\.2\.5, the version of HEAD/);
     assert.equal(read(dir, "build/rabbit-ears.zip"), undefined);
   }));
 

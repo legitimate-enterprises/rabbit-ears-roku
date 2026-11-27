@@ -1,6 +1,6 @@
 # Node comes from the PATH; with nvm, select an LTS first.
 .DEFAULT_GOAL := help
-.PHONY: help deps generate build run release deploy spec test test-unit style lint format clean
+.PHONY: help deps generate build/manifest build run release deploy spec test test-unit style lint format clean
 
 BRS := source/*.brs components/*.brs components/*/*.brs tests/*.brs
 
@@ -13,13 +13,21 @@ deps: ## Install npm packages from the lockfile
 generate: ## Draw the icons, splash screens and focus images into build/images
 	node scripts/images.mjs build/images
 
+# build_version is the commit's ordinal on main, which a shallow clone
+# cannot count.
+build/manifest:
+	@[ "$$(git rev-parse --is-shallow-repository)" = false ] || \
+		{ echo "error: a shallow clone cannot count commits; fetch the full history" >&2; exit 1; }
+	mkdir -p build
+	{ grep -v '^build_version=' manifest; echo "build_version=$$(git rev-list --count HEAD)"; } > build/manifest
+
 # bsc only validates: its own package rewrites the XML and adds its
 # runtime, so the zip holds the sources as written.
-build: generate ## Validate with bsc and zip the app into build/rabbit-ears.zip
+build: generate build/manifest ## Validate with bsc and zip the app into build/rabbit-ears.zip
 	npx bsc --project bsconfig.json --create-package=false --copy-to-staging=false
 	rm -f build/rabbit-ears.zip
-	zip -qr build/rabbit-ears.zip manifest source components -x '*.DS_Store'
-	cd build && zip -qr rabbit-ears.zip images
+	zip -qr build/rabbit-ears.zip source components -x '*.DS_Store'
+	cd build && zip -qr rabbit-ears.zip manifest images
 
 # Developer mode only; the store build is uploaded by hand.
 run: ## Sideload the package to ROKU_HOST with ROKU_PASSWORD
@@ -48,7 +56,7 @@ release: ## Sign the package on the Roku at ROKU_HOST and attach it to TAG's Git
 
 test: style lint build test-unit ## Every gate CI enforces
 
-test-unit: ## BrightScript unit tests under brs, the API client against the spec, the release script against a fake Roku
+test-unit: ## BrightScript unit tests under brs, the API client against the spec, versioning, the release script against a fake Roku
 	node --test tests/*.test.mjs
 
 style: ## bsfmt in checking mode

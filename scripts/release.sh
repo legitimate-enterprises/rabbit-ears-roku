@@ -6,8 +6,7 @@
 #
 # CI only: it is what a release job for a v<version> tag runs, with
 # ROKU_HOST, ROKU_PASSWORD, ROKU_SIGNING_PASSWORD and GH_TOKEN in its
-# environment. The version is manifest's
-# major_version.minor_version.build_version.
+# environment. The version is HEAD's, as cut-release.sh --check reads it.
 #
 #   release.sh v<version>
 set -euo pipefail
@@ -20,8 +19,8 @@ tag="${1:?usage: release.sh v<version>}"
 for var in ROKU_HOST ROKU_PASSWORD ROKU_SIGNING_PASSWORD GH_TOKEN; do
     [ -n "${!var:-}" ] || die "$var is not set"
 done
-version="$(sed -n 's/^major_version=//p' manifest).$(sed -n 's/^minor_version=//p' manifest).$(sed -n 's/^build_version=//p' manifest)"
-[ "$tag" = "v$version" ] || die "$tag is not v$version, the version manifest states"
+scripts/cut-release.sh --check "$tag"
+version="${tag#v}"
 
 make --no-print-directory build
 

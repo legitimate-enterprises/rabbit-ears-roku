@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Tags the app for release. Its version is the
-# major_version.minor_version.build_version that manifest states on
-# origin/main, so there is no bump to choose here: the tag is v<version>, cut
-# on origin/main once ci is green there, and pushing it starts release.yaml.
+# Tags the app for release. Its version is M.m.N: M.m is the
+# major_version.minor_version that manifest states on origin/main, which only
+# the owner raises, and N is the count of commits on origin/main, so there is
+# no bump to choose here: the tag is v<version>, cut on origin/main once ci is
+# green there, and pushing it starts release.yaml.
 #
 # Usage: cut-release.sh                  the version and its state
 #        cut-release.sh --yes            tag and push
-#        cut-release.sh --check <tag>    fail unless HEAD states the tag's version
+#        cut-release.sh --check <tag>    fail unless the tag is HEAD's version
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -18,11 +19,13 @@ die() { echo "error: $*" >&2; exit 1; }
 
 # version_at <ref>
 version_at() {
-    local text v form='^[0-9]+\.[0-9]+\.[0-9]+$'
+    local text v form='^[0-9]+\.[0-9]+$'
+    [ "$(git rev-parse --is-shallow-repository)" = false ] ||
+        die "a shallow clone cannot count commits; fetch the full history"
     text="$(git show "$1:$SOURCE")"
-    v="$(sed -n 's/^major_version=//p' <<< "$text").$(sed -n 's/^minor_version=//p' <<< "$text").$(sed -n 's/^build_version=//p' <<< "$text")"
-    [[ "$v" =~ $form ]] || die "$SOURCE at $1 states no version of the form $form (got '$v')"
-    echo "$v"
+    v="$(sed -n 's/^major_version=//p' <<< "$text").$(sed -n 's/^minor_version=//p' <<< "$text")"
+    [[ "$v" =~ $form ]] || die "$SOURCE at $1 states no major_version.minor_version of the form $form (got '$v')"
+    echo "$v.$(git rev-list --count "$1")"
 }
 
 # state_of: one line saying whether origin/main can be tagged. Returns 0 when
@@ -33,18 +36,18 @@ state_of() {
     v="$(version_at origin/main)" || return 2
     tag="v$v"
     if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
-        # shellcheck disable=SC2086 # the paths are separate arguments
-        if git diff --quiet "$tag" origin/main -- $PATHS; then
-            echo "$v is released and nothing in it has changed"
-            return 1
-        fi
-        echo "changed since $tag but still says $v: raise the version in $SOURCE"
-        return 2
+        echo "$v is released"
+        return 1
     fi
     newest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -1)"
     if [ -n "$newest" ] && [ "$(printf '%s\n%s\n' "$newest" "$v" | sort -V | tail -1)" != "$v" ]; then
-        echo "says $v, below the released $newest: raise the version in $SOURCE"
+        echo "says $v, below the released $newest: the owner raises major_version or minor_version in $SOURCE"
         return 2
+    fi
+    # shellcheck disable=SC2086 # the paths are separate arguments
+    if [ -n "$newest" ] && git diff --quiet "v$newest" origin/main -- $PATHS; then
+        echo "nothing in the app has changed since v$newest"
+        return 1
     fi
     echo "$v is ready: $tag"
 }
@@ -52,7 +55,7 @@ state_of() {
 if [ "${1:-}" = "--check" ]; then
     tag="${2:?usage: cut-release.sh --check <tag>}"
     v="$(version_at HEAD)"
-    [ "$tag" = "v$v" ] || die "$tag is on a commit whose $SOURCE says $v"
+    [ "$tag" = "v$v" ] || die "$tag is not v$v, the version of HEAD"
     exit 0
 fi
 
