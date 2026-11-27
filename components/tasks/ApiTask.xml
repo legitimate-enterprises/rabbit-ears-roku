@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One request, or one composite load, off the render thread. -->
+<component name="ApiTask" extends="Task">
+    <script type="text/brightscript" uri="ApiTask.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/bif.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/cache.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/home.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/device.brs" />
+    <interface>
+        <field id="request" type="assocarray" />
+        <field id="response" type="assocarray" />
+    </interface>
+</component>

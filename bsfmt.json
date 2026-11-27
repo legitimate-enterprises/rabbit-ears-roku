@@ -1,0 +1,11 @@
+{
+  "indentSpaceCount": 4,
+  "keywordCase": "lower",
+  "compositeKeywords": "split",
+  "removeTrailingWhiteSpace": true,
+  "formatInteriorWhitespace": true,
+  "insertSpaceBeforeFunctionParenthesis": false,
+  "insertSpaceBetweenEmptyCurlyBraces": false,
+  "formatSingleLineCommentType": "singlequote",
+  "typeCase": "lower"
+}

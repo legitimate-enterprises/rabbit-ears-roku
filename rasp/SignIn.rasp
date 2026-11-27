@@ -1,0 +1,60 @@
+params:
+    rasp_version: 1
+    default_keypress_wait: 2
+    channels:
+        Rabbit Ears: dev
+steps:
+    - launch: Rabbit Ears
+    - pause: 8
+    - press: up
+    - press: up
+    - press: up
+    - press: ok
+    - pause: 2
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: ok
+    - text: https://rabbit-ears-demo.legitimate.enterprises
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: up
+    - press: ok
+    - press: ok
+    - pause: 3
+    - press: down
+    - press: ok
+    - text: script-login
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: up
+    - press: ok
+    - press: ok
+    - text: script-password
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: down
+    - press: up
+    - press: ok
+    - press: ok
+    - pause: 6
+    - press: ok
+    - pause: 6

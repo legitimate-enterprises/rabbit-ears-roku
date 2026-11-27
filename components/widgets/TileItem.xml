@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A grid or row tile. -->
+<component name="TileItem" extends="Group">
+    <script type="text/brightscript" uri="TileItem.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <interface>
+        <field id="itemContent" type="node" onChange="draw" />
+        <field id="itemHasFocus" type="boolean" onChange="onFocus" />
+        <field id="gridHasFocus" type="boolean" onChange="onFocus" />
+        <field id="rowListHasFocus" type="boolean" onChange="onFocus" />
+    </interface>
+</component>

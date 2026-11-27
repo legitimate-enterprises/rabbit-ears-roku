@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An episode row on Season. -->
+<component name="EpisodeItem" extends="Group">
+    <script type="text/brightscript" uri="EpisodeItem.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <interface>
+        <field id="itemContent" type="node" onChange="draw" />
+        <field id="itemHasFocus" type="boolean" onChange="onFocus" />
+        <field id="listHasFocus" type="boolean" onChange="onFocus" />
+    </interface>
+</component>

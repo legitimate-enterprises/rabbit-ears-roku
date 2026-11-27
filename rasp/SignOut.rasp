@@ -1,0 +1,11 @@
+params:
+    rasp_version: 1
+    default_keypress_wait: 2
+    channels:
+        Rabbit Ears: dev
+steps:
+    - launch: Rabbit Ears
+    - pause: 8
+    - press: down
+    - press: ok
+    - pause: 4

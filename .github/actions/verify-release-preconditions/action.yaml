@@ -1,0 +1,44 @@
+name: verify release preconditions
+description: >
+  Refuses to release a tag that is not an ancestor of main, or whose commit has
+  no passing ci run. Asserts, never waits: a release job that blocked here on
+  a self-hosted runner would hold the slot the ci jobs it waited for need.
+  `make deploy` gates on the same run before the tag is ever created; this is
+  the backstop for a tag pushed by hand.
+
+  Requires a checkout with fetch-depth 0 (for origin/main) and gh on PATH.
+inputs:
+  github-token:
+    description: >
+      Token with actions:read, used to look up the ci run for this commit. A
+      job declaring an explicit `permissions:` block must list actions:read, or
+      the lookup 403s.
+    required: true
+  ci-workflow:
+    description: Workflow file whose run vouches for the commit.
+    required: false
+    default: ci.yaml
+runs:
+  using: composite
+  steps:
+    # A tag pushed onto a branch that was never merged would otherwise ship
+    # code no ci run ever saw.
+    - name: verify tag is on main
+      shell: bash
+      run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+    # The tag and main's HEAD are the same commit, so that commit's ci run is
+    # what vouches for whatever is about to be signed and published.
+    - name: verify ci passed for this commit
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        CI_WORKFLOW: ${{ inputs.ci-workflow }}
+      run: |
+        conclusion="$(gh run list --workflow "$CI_WORKFLOW" --branch main \
+          --commit "$GITHUB_SHA" --limit 1 \
+          --json conclusion --jq '.[0].conclusion // "none"')"
+        if [ "$conclusion" != "success" ]; then
+          echo "::error::ci for $GITHUB_SHA concluded '$conclusion' — re-run this workflow once ci is green"
+          exit 1
+        fi

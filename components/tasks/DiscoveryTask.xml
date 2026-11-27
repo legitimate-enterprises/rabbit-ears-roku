@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Finds servers on this network; servers is every reply as { name, address }. -->
+<component name="DiscoveryTask" extends="Task">
+    <script type="text/brightscript" uri="DiscoveryTask.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/discovery.brs" />
+    <interface>
+        <field id="servers" type="array" />
+    </interface>
+</component>

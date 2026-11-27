@@ -1,0 +1,18 @@
+{
+  "rootDir": ".",
+  "files": [
+    "manifest",
+    "source/**/*.brs",
+    "components/**/*.{brs,xml}",
+    { "src": "build/images/*.png", "dest": "images" }
+  ],
+  "diagnosticFilters": [
+    {
+      "src": "node_modules/**/*"
+    }
+  ],
+  "lintConfig": "bslint.json",
+  "plugins": [
+    "@rokucommunity/bslint"
+  ]
+}

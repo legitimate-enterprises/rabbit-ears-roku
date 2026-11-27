@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sign in on the device: Server, Email, Password, or a code; the server chooser; and which household the Roku is in. -->
+<component name="SignInView" extends="Group">
+    <script type="text/brightscript" uri="SignInView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/brand.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/cache.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/discovery.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/household.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/session.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/device.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
+    <interface>
+        <field id="params" type="assocarray" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

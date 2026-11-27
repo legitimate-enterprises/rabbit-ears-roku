@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The router: a stack of full-screen views, deep links, and leaving the app. -->
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="MainScene.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/brand.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/cache.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/deeplink.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/discovery.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/launch.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/live.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/remember.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/session.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <interface>
+        <field id="launchArgs" type="assocarray" onChange="onDeepLink" />
+        <field id="deepLink" type="assocarray" onChange="onDeepLink" />
+        <field id="exit" type="boolean" />
+    </interface>
+</component>

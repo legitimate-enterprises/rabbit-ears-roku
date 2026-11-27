@@ -1,0 +1,42 @@
+name: release
+
+# A `roku-v<major_version>` tag, which `make deploy` pushes, signs the app on
+# the developer-mode Roku at ROKU_HOST and attaches the package to the tag's
+# GitHub release, for upload by hand in the Roku Developer Dashboard.
+#
+# The job runs on the self-hosted runner: that Roku holds the app's signing
+# key and is reachable only from the runner's network. Only a tag starts it,
+# and only an account with write access can push one, so nothing a fork
+# proposes runs on that host.
+on:
+  push:
+    tags: ['roku-v*']
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  roku:
+    runs-on: [self-hosted, macOS, m4, release]
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # The runner's launchd PATH is bare.
+      - run: echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/verify-release-preconditions
+        with:
+          github-token: ${{ github.token }}
+      - name: Tag must state the version in the files
+        run: scripts/cut-release.sh --check "$GITHUB_REF_NAME"
+      - run: make deps
+      - run: make release TAG="$GITHUB_REF_NAME"
+        env:
+          ROKU_HOST: ${{ secrets.ROKU_HOST }}
+          ROKU_PASSWORD: ${{ secrets.ROKU_PASSWORD }}
+          ROKU_SIGNING_PASSWORD: ${{ secrets.ROKU_SIGNING_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}

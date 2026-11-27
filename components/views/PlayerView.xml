@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The player: the Video node under the boards' overlay. -->
+<component name="PlayerView" extends="Group">
+    <script type="text/brightscript" uri="PlayerView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/home.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/playlist.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/station.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/device.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/player.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/telemetry.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/bif.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/together.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/live.brs" />
+    <interface>
+        <field id="params" type="assocarray" onChange="start" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+        <function name="close" />
+    </interface>
+</component>

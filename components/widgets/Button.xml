@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The boards' button: primary goldenrod (kind p), glass (kind s) or a goldenrod outline (kind o). -->
+<component name="Button" extends="Group">
+    <script type="text/brightscript" uri="Button.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <interface>
+        <field id="text" type="string" onChange="draw" />
+        <field id="kind" type="string" value="s" />
+        <field id="small" type="boolean" value="false" />
+        <field id="icon" type="string" />
+        <!-- Past this width the label ends in an ellipsis; 0 for none. -->
+        <field id="maxWidth" type="integer" onChange="draw" />
+    </interface>
+</component>

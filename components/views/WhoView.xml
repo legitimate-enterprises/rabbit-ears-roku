@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Who's watching, without Add kid, and the PIN pad. -->
+<component name="WhoView" extends="Group">
+    <script type="text/brightscript" uri="WhoView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/brand.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/cache.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/session.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/device.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
+    <interface>
+        <field id="params" type="assocarray" onChange="onParams" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

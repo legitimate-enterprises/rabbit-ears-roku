@@ -1,0 +1,12 @@
+build/
+node_modules/
+.DS_Store
+
+# Local settings for a developer-mode Roku.
+.env.roku.local
+
+# Working notes, never committed.
+notes.md
+plan.md
+memory.md
+release-setup.md

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Artist details: round image, facts, Play and Shuffle, the bio, Popular, and the albums below. -->
+<component name="ArtistView" extends="Group">
+    <script type="text/brightscript" uri="ArtistView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/music.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/music.brs" />
+    <interface>
+        <field id="params" type="assocarray" onChange="load" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

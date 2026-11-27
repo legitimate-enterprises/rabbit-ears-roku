@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home: Continue watching only while something is in progress; New from your channels for adults only. -->
+<component name="HomeView" extends="Group">
+    <script type="text/brightscript" uri="HomeView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/playlist.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/station.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/stations.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/device.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
+    <interface>
+        <field id="params" type="assocarray" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

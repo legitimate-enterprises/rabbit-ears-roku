@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A movie collection and its movies in the server's order. -->
+<component name="CollectionView" extends="Group">
+    <script type="text/brightscript" uri="CollectionView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/batch.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/playlist.brs" />
+    <interface>
+        <field id="params" type="assocarray" onChange="load" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

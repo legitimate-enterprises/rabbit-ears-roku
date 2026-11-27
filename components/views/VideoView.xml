@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- YouTube video details. -->
+<component name="VideoView" extends="Group">
+    <script type="text/brightscript" uri="VideoView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/together.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/live.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/together.brs" />
+    <interface>
+        <field id="params" type="assocarray" onChange="load" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The music queue and its Audio node, kept by the scene so a song plays on across Music, Artist, Album and Now playing. -->
+<component name="MusicPlayer" extends="Group">
+    <script type="text/brightscript" uri="MusicPlayer.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/home.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/music.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/playlist.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/station.brs" />
+    <interface>
+        <!-- { op: play, songs, index, from, playlistId, shuffle }, { op: station, station }, or toggle, next, previous, seek with by in seconds, shuffle, repeat, stop, stopStation. -->
+        <field id="command" type="assocarray" alwaysNotify="true" onChange="onCommand" />
+        <!-- { song, from, upNext, playing, shuffle, repeat, status, station, lines }; song is absent while nothing plays. -->
+        <field id="now" type="assocarray" />
+        <field id="position" type="float" />
+        <field id="duration" type="float" />
+    </interface>
+</component>

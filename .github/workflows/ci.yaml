@@ -1,0 +1,44 @@
+name: ci
+
+# Each job is one `make` target on a GitHub-hosted runner. Lint starts when
+# style is green, the build and the tests when lint is.
+#
+# `branches` is spelled out: a bare `push:` also matches tags.
+on:
+  push:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+jobs:
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make deps
+      - run: make style
+
+  lint:
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make deps
+      - run: make lint
+
+  build:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make deps
+      - run: make build
+
+  test-unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make deps
+      - run: make test-unit

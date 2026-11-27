@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Music and YouTube tabs: a grid of the chosen chip's listing. -->
+<component name="MediaView" extends="Group">
+    <script type="text/brightscript" uri="MediaView.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/batch.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/music.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/playlist.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/station.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/stations.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/music.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/bar.brs" />
+    <interface>
+        <field id="params" type="assocarray" onChange="onParams" />
+        <!-- Where the tab bar leaves room for the now-playing chip, left of the profile. -->
+        <field id="chipRight" type="integer" onChange="placeChip" />
+        <field id="navigate" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

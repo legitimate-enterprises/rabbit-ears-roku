@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- While active, sets changed to the capability groups that moved: HDMI, display mode, audio route or connection. -->
+<component name="DeviceWatchTask" extends="Task">
+    <script type="text/brightscript" uri="DeviceWatchTask.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
+    <interface>
+        <field id="active" type="boolean" value="true" />
+        <field id="changed" type="assocarray" alwaysNotify="true" />
+    </interface>
+</component>

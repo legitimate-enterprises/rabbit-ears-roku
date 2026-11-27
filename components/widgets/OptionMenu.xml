@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The boards' menus: rows of { label, detail, verdict, tone, checked, disabled }. OK sets chosen to the row index; back sets cancelled. Rows past maxHeight scroll. -->
+<component name="OptionMenu" extends="Group">
+    <script type="text/brightscript" uri="OptionMenu.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/ui.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/api.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/focus.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
+    <interface>
+        <field id="heading" type="string" />
+        <field id="menuWidth" type="integer" value="660" />
+        <field id="maxHeight" type="integer" value="0" />
+        <field id="options" type="array" onChange="draw" />
+        <field id="chosen" type="integer" alwaysNotify="true" />
+        <field id="cancelled" type="boolean" alwaysNotify="true" />
+    </interface>
+</component>
