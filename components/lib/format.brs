@@ -261,7 +261,7 @@ function formatProfileColor(hex as dynamic) as string
 end function
 
 ' A cast member's placeholder disc, one of the server's eight colors.
-function formatPersonColor(id as integer) as string
+function formatPersonColor(id as string) as string
     colors = ["0x3C4170FF", "0x2E6B5BFF", "0x6B3A2EFF", "0x5B4A8AFF", "0x8A5A2BFF", "0x2E5B8AFF", "0x6B2E5AFF", "0x4A6B2EFF"]
-    return colors[id mod 8]
+    return colors[apiIdPick(id, 8)]
 end function

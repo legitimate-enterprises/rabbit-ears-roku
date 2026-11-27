@@ -31,8 +31,8 @@ sub testEntryCaptionOfAPlayableThing()
 end sub
 
 sub testEntryArtIsTheItemsExceptASongsAlbum()
-    assertEqual(playlistEntryArtId({ itemId: 7, kind: "show" }), 7)
-    assertEqual(playlistEntryArtId({ itemId: 8, kind: "song", song: { albumId: 3 } }), 3)
+    assertEqual(playlistEntryArtId({ itemId: uid(7), kind: "show" }), uid(7))
+    assertEqual(playlistEntryArtId({ itemId: uid(8), kind: "song", song: { albumId: uid(3) } }), uid(3))
 end sub
 
 sub testPlayOrderStartsAtAnEntrysFirstRow()
@@ -76,10 +76,10 @@ sub testCollectionMovieCaptionLeadsWithRuntime()
 end sub
 
 sub testCollectionEntryHasNoItem()
-    e = { id: 6, kind: "collection", collectionId: 12, itemCount: 3, durationMs: 330 * 60000, collection: { id: 12, name: "Harbor Lights Saga", movieCount: 3 } }
+    e = { id: 6, kind: "collection", collectionId: uid(12), itemCount: 3, durationMs: 330 * 60000, collection: { id: uid(12), name: "Harbor Lights Saga", movieCount: 3 } }
     assertEqual(playlistEntryTitle(e), "Harbor Lights Saga")
     assertEqual(playlistEntryCaption(e), "3 movies · 5h 30m")
-    assertEqual(playlistEntryArtId(e), 12)
+    assertEqual(playlistEntryArtId(e), uid(12))
 end sub
 
 sub testPlayOrderStartsAtACollectionsFirstMovie()

@@ -126,7 +126,7 @@ end function
 
 ' The profile and server reads are kept under, "" while none is active.
 function cacheSlot() as string
-    if m.global.locked or m.global.token = "" or m.global.profileId = 0 then return ""
+    if m.global.locked or m.global.token = "" or m.global.profileId = "" then return ""
     return m.global.profileId.ToStr() + " " + m.global.server
 end function
 
@@ -213,7 +213,7 @@ end function
 
 ' Watch states keyed by item id; with a parentId only those of the episodes
 ' and seasons under that show or season.
-function statesById(profileId as integer, parentId = invalid as dynamic) as object
+function statesById(profileId as string, parentId = invalid as dynamic) as object
     query = {}
     if parentId <> invalid then query.AddReplace("parentId", parentId)
     r = sendAll("listWatchStates", { profileId: profileId }, query)
@@ -234,14 +234,14 @@ function loadItem(a as object) as object
 end function
 
 ' A 404 means the profile has no watch state for the item yet.
-function stateOf(profileId as integer, itemId as integer) as dynamic
+function stateOf(profileId as string, itemId as string) as dynamic
     r = send("getWatchState", { profileId: profileId, itemId: itemId })
     if r.ok then return r.data
     return invalid
 end function
 
 ' ShowProgress keyed by show id.
-function progressById(profileId as integer) as object
+function progressById(profileId as string) as object
     r = sendAll("listShowProgress", { profileId: profileId }, {})
     if not r.ok then return r
     byId = {}
@@ -414,13 +414,13 @@ function loadGenre(a as object) as object
 end function
 
 ' Every edition's files of the item; empty when they fail to load.
-function filesOf(itemId as integer) as object
+function filesOf(itemId as string) as object
     r = send("listMediaFiles", {}, { itemId: itemId })
     if r.ok then return r.data.items
     return []
 end function
 
-function firstFile(itemId as integer, edition = invalid as dynamic, playing = invalid as dynamic) as dynamic
+function firstFile(itemId as string, edition = invalid as dynamic, playing = invalid as dynamic) as dynamic
     return libraryEditionFile(filesOf(itemId), edition, playing)
 end function
 

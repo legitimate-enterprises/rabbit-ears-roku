@@ -166,8 +166,9 @@ sub testProfileColorIsTheServers()
     assertEqual(formatProfileColor(invalid), "0x3C4170FF", "a missing color reads as the first")
 end sub
 
-sub testPersonColorCyclesTheEight()
-    assertEqual(formatPersonColor(1), formatPersonColor(9))
-    assertEqual(formatPersonColor(0), "0x3C4170FF")
-    assertEqual(formatPersonColor(7), "0x4A6B2EFF")
+sub testPersonColorIsTheIdsLastByteOfTheEight()
+    assertEqual(formatPersonColor(uid(1)), formatPersonColor(uid(9)))
+    assertEqual(formatPersonColor(uid(0)), "0x3C4170FF")
+    assertEqual(formatPersonColor(uid(7)), "0x4A6B2EFF")
+    assertEqual(formatPersonColor("019ac3e0-5b2a-7c3d-8e4f-0000000000ff"), "0x4A6B2EFF", "0xff is 255")
 end sub

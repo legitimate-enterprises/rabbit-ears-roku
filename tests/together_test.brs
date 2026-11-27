@@ -1,42 +1,42 @@
 ' Fixtures follow the WatchTogether schema: Helga (account 2) hosts on her
 ' iPhone, Joan (account 1) is this TV's profile.
 function helga() as object
-    return { accountId: 2, name: "Helga", role: "host", deviceName: "iPhone", platform: "ios", present: true }
+    return { accountId: uid(2), name: "Helga", role: "host", deviceName: "iPhone", platform: "ios", present: true }
 end function
 
 function joan() as object
-    return { accountId: 1, name: "Joan", role: "guest", deviceName: "Living room", platform: "roku", present: true }
+    return { accountId: uid(1), name: "Joan", role: "guest", deviceName: "Living room", platform: "roku", present: true }
 end function
 
 function together(status as string, members as object, playing = false as boolean, positionMs = 0 as integer) as object
     ' In effect from the moment it arrives.
-    return { id: 7, itemId: 41, status: status, members: members, joinMsLeft: 252000, playing: playing, positionMs: positionMs, version: 3, serverTimeMs: 1000, effectiveAtMs: 1000, effectivePositionMs: positionMs }
+    return { id: uid(7), itemId: uid(41), status: status, members: members, joinMsLeft: 252000, playing: playing, positionMs: positionMs, version: 3, serverTimeMs: 1000, effectiveAtMs: 1000, effectivePositionMs: positionMs }
 end function
 
 sub testPickPrefersTheOneTheProfileIsIn()
     mine = together("joined", [helga(), joan()])
-    mine.id = 8
-    other = together("waiting", [{ accountId: 3, name: "Sam", role: "host", deviceName: "Mac", platform: "macos", present: true }])
-    assertEqual(togetherPick([other, mine], 1).id, 8)
-    assertEqual(togetherPick([other], 1).id, 7, "someone else's waiting one offers Join")
-    assertEqual(togetherPick([together("ended", [joan()])], 1), invalid, "an ended one is none")
-    assertEqual(togetherPick([together("joined", [helga(), { accountId: 3, name: "Sam", role: "guest" }])], 1), invalid, "two others watching is none")
-    assertEqual(togetherPick([], 1), invalid)
+    mine.id = uid(8)
+    other = together("waiting", [{ accountId: uid(3), name: "Sam", role: "host", deviceName: "Mac", platform: "macos", present: true }])
+    assertEqual(togetherPick([other, mine], uid(1)).id, uid(8))
+    assertEqual(togetherPick([other], uid(1)).id, uid(7), "someone else's waiting one offers Join")
+    assertEqual(togetherPick([together("ended", [joan()])], uid(1)), invalid, "an ended one is none")
+    assertEqual(togetherPick([together("joined", [helga(), { accountId: uid(3), name: "Sam", role: "guest" }])], uid(1)), invalid, "two others watching is none")
+    assertEqual(togetherPick([], uid(1)), invalid)
 end sub
 
 sub testStageFromTheProfilesSide()
-    assertEqual(togetherStage(invalid, 1), "none")
-    assertEqual(togetherStage(together("waiting", [joan()]), 1), "waiting")
-    assertEqual(togetherStage(together("waiting", [helga()]), 1), "join")
-    assertEqual(togetherStage(together("joined", [helga(), joan()]), 1), "joined")
-    assertEqual(togetherStage(together("ended", [helga(), joan()]), 1), "none")
+    assertEqual(togetherStage(invalid, uid(1)), "none")
+    assertEqual(togetherStage(together("waiting", [joan()]), uid(1)), "waiting")
+    assertEqual(togetherStage(together("waiting", [helga()]), uid(1)), "join")
+    assertEqual(togetherStage(together("joined", [helga(), joan()]), uid(1)), "joined")
+    assertEqual(togetherStage(together("ended", [helga(), joan()]), uid(1)), "none")
 end sub
 
 sub testNamesTheHostAndTheOtherMember()
     w = together("joined", [helga(), joan()])
     assertEqual(togetherHost(w).name, "Helga")
-    assertEqual(togetherOther(w, 2).name, "Joan")
-    assertEqual(togetherOther(together("waiting", [joan()]), 1), invalid)
+    assertEqual(togetherOther(w, uid(2)).name, "Joan")
+    assertEqual(togetherOther(together("waiting", [joan()]), uid(1)), invalid)
 end sub
 
 sub testCountdownRoundsUpAndStopsAtZero()
@@ -48,10 +48,10 @@ sub testCountdownRoundsUpAndStopsAtZero()
 end sub
 
 sub testNotesAsTheBoardsWriteThem()
-    assertEqual(togetherNote(together("waiting", [joan()]), 1, "Dune: Part Two", 0), "Someone else who opens Dune: Part Two and chooses Watch together in the next 5 minutes will play in sync with you. Pause and play on either device apply to both.")
-    assertEqual(togetherNote(together("waiting", [helga()]), 1, "Dune: Part Two", 0), "Helga wants to watch this together. Join in the next 4:12 to play in sync.")
-    assertEqual(togetherNote(together("joined", [helga(), joan()]), 1, "Dune: Part Two", 0), "Pause and play on either device apply to both. Helga is on iPhone.")
-    assertEqual(togetherNote(invalid, 1, "Dune: Part Two", 0), "")
+    assertEqual(togetherNote(together("waiting", [joan()]), uid(1), "Dune: Part Two", 0), "Someone else who opens Dune: Part Two and chooses Watch together in the next 5 minutes will play in sync with you. Pause and play on either device apply to both.")
+    assertEqual(togetherNote(together("waiting", [helga()]), uid(1), "Dune: Part Two", 0), "Helga wants to watch this together. Join in the next 4:12 to play in sync.")
+    assertEqual(togetherNote(together("joined", [helga(), joan()]), uid(1), "Dune: Part Two", 0), "Pause and play on either device apply to both. Helga is on iPhone.")
+    assertEqual(togetherNote(invalid, uid(1), "Dune: Part Two", 0), "")
 end sub
 
 sub testExpectedPositionAdvancesOnlyWhilePlayingFromItsInstant()
@@ -102,12 +102,12 @@ end sub
 
 sub testPausedByNamesOnlyTheOtherSide()
     w = together("joined", [helga(), joan()])
-    w.pausedById = 2
+    w.pausedById = uid(2)
     w.pausedByName = "Helga"
-    assertEqual(togetherPausedBy(w, 1), "Helga paused")
-    assertEqual(togetherPausedBy(w, 2), "")
+    assertEqual(togetherPausedBy(w, uid(1)), "Helga paused")
+    assertEqual(togetherPausedBy(w, uid(2)), "")
     w.playing = true
-    assertEqual(togetherPausedBy(w, 1), "")
+    assertEqual(togetherPausedBy(w, uid(1)), "")
 end sub
 
 sub testTheOtherSidesPlayOpensThePlayer()
@@ -127,7 +127,7 @@ sub testAnOlderAnswerIsDropped()
     assertTrue(not togetherStale(w, w))
     assertTrue(not togetherStale(invalid, older))
     other = together("waiting", [joan()])
-    other.id = 9
+    other.id = uid(9)
     other.version = 1
     assertTrue(not togetherStale(w, other), "another Watch together")
 end sub
@@ -143,27 +143,27 @@ end sub
 
 ' Joan's own iPad and this TV, as "Playing on" pairs them.
 function ipad(role as string) as object
-    return { accountId: 1, name: "Joan", role: role, deviceName: "Kitchen iPad", platform: "ios", present: true, thisDevice: false }
+    return { accountId: uid(1), name: "Joan", role: role, deviceName: "Kitchen iPad", platform: "ios", present: true, thisDevice: false }
 end function
 
 function tv(role as string) as object
-    return { accountId: 1, name: "Joan", role: role, deviceName: "Living room", platform: "roku", present: true, thisDevice: true }
+    return { accountId: uid(1), name: "Joan", role: role, deviceName: "Living room", platform: "roku", present: true, thisDevice: true }
 end function
 
 sub testOneProfileOnTwoDevicesIsAMemberPerDevice()
     waiting = together("waiting", [ipad("host")])
-    assertEqual(togetherMember(waiting, 1), invalid, "the iPad waits; this TV is not in it")
-    assertEqual(togetherStage(waiting, 1), "join")
-    assertEqual(togetherPick([waiting], 1).id, 7)
-    assertEqual(togetherName(togetherHost(waiting), 1), "Kitchen iPad")
-    assertEqual(togetherNote(waiting, 1, "Dune", 0), "Kitchen iPad wants to watch this together. Join in the next 4:12 to play in sync.")
-    assertEqual(togetherStage(together("waiting", [tv("host")]), 1), "waiting")
+    assertEqual(togetherMember(waiting, uid(1)), invalid, "the iPad waits; this TV is not in it")
+    assertEqual(togetherStage(waiting, uid(1)), "join")
+    assertEqual(togetherPick([waiting], uid(1)).id, uid(7))
+    assertEqual(togetherName(togetherHost(waiting), uid(1)), "Kitchen iPad")
+    assertEqual(togetherNote(waiting, uid(1), "Dune", 0), "Kitchen iPad wants to watch this together. Join in the next 4:12 to play in sync.")
+    assertEqual(togetherStage(together("waiting", [tv("host")]), uid(1)), "waiting")
     joined = together("joined", [ipad("host"), tv("guest")])
-    assertEqual(togetherMember(joined, 1).deviceName, "Living room")
-    assertEqual(togetherOther(joined, 1).deviceName, "Kitchen iPad")
-    assertEqual(togetherName(togetherOther(joined, 1), 1), "Kitchen iPad")
-    assertEqual(togetherNote(joined, 1, "Dune", 0), "Pause and play on either device apply to both. Also playing on Kitchen iPad.")
-    assertEqual(togetherName(helga(), 1), "Helga")
+    assertEqual(togetherMember(joined, uid(1)).deviceName, "Living room")
+    assertEqual(togetherOther(joined, uid(1)).deviceName, "Kitchen iPad")
+    assertEqual(togetherName(togetherOther(joined, uid(1)), uid(1)), "Kitchen iPad")
+    assertEqual(togetherNote(joined, uid(1), "Dune", 0), "Pause and play on either device apply to both. Also playing on Kitchen iPad.")
+    assertEqual(togetherName(helga(), uid(1)), "Helga")
 end sub
 
 sub testTheReportCarriesTheLatestQuickRoundTripAndThePlayersFloor()

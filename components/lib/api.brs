@@ -259,8 +259,20 @@ end function
 function apiTrackBody(audioTrackId as dynamic, subtitle as string) as object
     body = {}
     if audioTrackId <> invalid then body.AddReplace("audioTrackId", audioTrackId)
-    if subtitle <> "off" and subtitle <> "forced" then body.AddReplace("subtitleTrackId", subtitle.ToInt())
+    if subtitle <> "off" and subtitle <> "forced" then body.AddReplace("subtitleTrackId", subtitle)
     return body
+end function
+
+' Whether text is an id as the spec's Id pattern writes one, a UUIDv7 in
+' lowercase; the server answers 400 to any other.
+function apiId(text as string) as boolean
+    return CreateObject("roRegex", "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", "").IsMatch(text)
+end function
+
+' The index into a palette of count that id picks: its last byte, random in
+' a UUIDv7, as the server picks a profile's color.
+function apiIdPick(id as string, count as integer) as integer
+    return Val(Right(id, 2), 16) mod count
 end function
 
 ' A response as { ok, status, data, code, message }. A status of zero or

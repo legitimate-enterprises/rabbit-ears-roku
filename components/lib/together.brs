@@ -4,7 +4,7 @@
 
 ' The one a details screen shows: the one the profile is in, else one
 ' someone else waits in; invalid for none.
-function togetherPick(items as object, me as integer) as dynamic
+function togetherPick(items as object, me as string) as dynamic
     pick = invalid
     for each w in items
         if w.status <> "ended"
@@ -17,7 +17,7 @@ end function
 
 ' The member this TV is: one profile may watch with itself on two devices,
 ' and this TV is then only the member the server marks as this device.
-function togetherMember(w as object, accountId as integer) as dynamic
+function togetherMember(w as object, accountId as string) as dynamic
     for each x in w.members
         if x.accountId = accountId and not togetherElsewhere(x) then return x
     end for
@@ -30,7 +30,7 @@ end function
 
 ' A member as the chip and the lines name them: someone else by name, the
 ' profile's other device by that device's name.
-function togetherName(x as object, me as integer) as string
+function togetherName(x as object, me as string) as string
     if x.accountId = me then return x.deviceName
     return x.name
 end function
@@ -43,7 +43,7 @@ function togetherHost(w as object) as dynamic
 end function
 
 ' The other member: someone else, else the profile's other device.
-function togetherOther(w as object, me as integer) as dynamic
+function togetherOther(w as object, me as string) as dynamic
     for each x in w.members
         if x.accountId <> me then return x
     end for
@@ -55,7 +55,7 @@ end function
 
 ' none; waiting while the profile waits for someone; join while someone
 ' else does; joined.
-function togetherStage(w as dynamic, me as integer) as string
+function togetherStage(w as dynamic, me as string) as string
     if w = invalid or w.status = "ended" then return "none"
     if w.status = "joined" then return "joined"
     if togetherMember(w, me) <> invalid then return "waiting"
@@ -70,7 +70,7 @@ function togetherCountdown(w as object, sinceMs as integer) as string
 end function
 
 ' The line under details' buttons.
-function togetherNote(w as dynamic, me as integer, title as string, sinceMs as integer) as string
+function togetherNote(w as dynamic, me as string, title as string, sinceMs as integer) as string
     stage = togetherStage(w, me)
     if stage = "waiting" then return "Someone else who opens " + title + " and chooses Watch together in the next 5 minutes will play in sync with you. Pause and play on either device apply to both."
     if stage = "join" then return togetherName(togetherHost(w), me) + " wants to watch this together. Join in the next " + togetherCountdown(w, sinceMs) + " to play in sync."
@@ -131,7 +131,7 @@ function togetherLocal(w as object, sinceMs as integer, oneWayMs as dynamic, pau
 end function
 
 ' Helga paused, while the other member's pause holds.
-function togetherPausedBy(w as object, me as integer) as string
+function togetherPausedBy(w as object, me as string) as string
     if w.playing or w.pausedById = invalid or w.pausedById = me or w.pausedByName = invalid then return ""
     return w.pausedByName + " paused"
 end function

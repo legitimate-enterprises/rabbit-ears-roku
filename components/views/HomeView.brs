@@ -69,7 +69,7 @@ sub addSeeAllTile(row as object, w as integer, h as integer)
     c.title = ""
     c.shortDescriptionLine1 = ""
     c.hdPosterUrl = ""
-    c.addFields({ itemId: 0, artWidth: w, artHeight: h, badge: "", glyph: "", more: true })
+    c.addFields({ itemId: "", artWidth: w, artHeight: h, badge: "", glyph: "", more: true })
 end sub
 
 function alsoItems(entries as object) as object

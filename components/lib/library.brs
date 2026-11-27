@@ -58,7 +58,7 @@ end function
 
 ' The episode after itemId among its season's episodes, in order; invalid
 ' after the season finale.
-function libraryEpisodeAfter(siblings as object, itemId as integer) as dynamic
+function libraryEpisodeAfter(siblings as object, itemId as string) as dynamic
     for i = 0 to siblings.Count() - 2
         if siblings[i].id = itemId then return siblings[i + 1]
     end for
@@ -162,7 +162,7 @@ end function
 ' A details page's occasion rows, as libraryRelated's shelves: each active
 ' occasion's titles but itemId, titled with the occasion's name; one left
 ' with no title has no row.
-function libraryOccasionRelated(active as object, lists as object, itemId as integer) as object
+function libraryOccasionRelated(active as object, lists as object, itemId as string) as object
     rows = []
     for i = 0 to active.Count() - 1
         items = []
@@ -341,7 +341,7 @@ function libraryKidsOnly(chip as string, hides as boolean) as boolean
 end function
 
 ' Whether the profile is an adult who hides kids' content.
-function libraryHides(profiles as object, profileId as integer) as boolean
+function libraryHides(profiles as object, profileId as string) as boolean
     for each p in profiles
         if p.id = profileId then return p.kind = "adult" and p.hideKidsContent = true
     end for

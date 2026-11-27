@@ -3,7 +3,7 @@ sub init()
     m.top.backgroundColor = uiColor("ground")
     ' stateVersion rises whenever the profile's watch state may have moved;
     ' views that show it reload. locked holds while Who's watching shows.
-    m.global.addFields({ server: "", serverName: "", token: "", discovered: false, me: {}, profileId: 0, servers: [], decoder: {}, stateVersion: 0, locked: false })
+    m.global.addFields({ server: "", serverName: "", token: "", discovered: false, me: {}, profileId: "", servers: [], decoder: {}, stateVersion: 0, locked: false })
     m.global.observeFieldScoped("locked", "onLocked")
     ' The server's live events: stationVersion and playlistVersion rise as
     ' stateVersion does, and live holds each batch as { events }, for the

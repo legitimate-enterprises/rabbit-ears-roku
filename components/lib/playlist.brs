@@ -59,7 +59,7 @@ function playlistEntryCaption(e as object) as string
 end function
 
 ' A collection entry has no itemId; its own id only colors the placeholder.
-function playlistEntryArtId(e as object) as integer
+function playlistEntryArtId(e as object) as string
     if e.collectionId <> invalid then return e.collectionId
     if e.song <> invalid then return e.song.albumId
     return e.itemId

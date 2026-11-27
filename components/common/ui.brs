@@ -17,9 +17,9 @@ function uiColor(name as string) as string
 end function
 
 ' Placeholder art: a flat block per item, as on the boards.
-function uiArtColor(id as integer) as string
+function uiArtColor(id as string) as string
     colors = ["0x2E6B8AFF", "0x6B3A2EFF", "0x5B6B3FFF", "0x4A3F5BFF", "0x3F5B8AFF", "0x5A2B2BFF", "0x2B5A4AFF", "0x8A5A2BFF", "0x3B3F55FF", "0x4C4A48FF"]
-    return colors[id mod colors.Count()]
+    return colors[apiIdPick(id, colors.Count())]
 end function
 
 function uiFont(size as integer, bold = false as boolean) as object
@@ -218,7 +218,7 @@ end sub
 ' Round artwork, an artist's, a channel's or a person's, over its
 ' placeholder disc. url and color, when given, replace the item's poster
 ' and placeholder color; a url of "" shows the placeholder alone.
-function uiRound(parent as object, itemId as integer, x as integer, y as integer, d as integer, glyph = "" as string, url = invalid as dynamic, color = "" as string) as object
+function uiRound(parent as object, itemId as string, x as integer, y as integer, d as integer, glyph = "" as string, url = invalid as dynamic, color = "" as string) as object
     g = parent.CreateChild("MaskGroup")
     g.maskUri = "pkg:/images/disc.png"
     g.maskSize = [d, d]
@@ -231,15 +231,15 @@ function uiRound(parent as object, itemId as integer, x as integer, y as integer
     return g
 end function
 
-function uiPersonArtUrl(personId as integer) as string
+function uiPersonArtUrl(personId as string) as string
     return m.global.server + apiRequest("getPersonArtwork", { personId: personId }).path
 end function
 
-function uiArtUrl(itemId as integer, kind as string) as string
+function uiArtUrl(itemId as string, kind as string) as string
     return m.global.server + apiRequest("getItemArtwork", { itemId: itemId, kind: kind }).path
 end function
 
-function uiCollectionArtUrl(collectionId as integer, kind as string) as string
+function uiCollectionArtUrl(collectionId as string, kind as string) as string
     return m.global.server + apiRequest("getCollectionArtwork", { collectionId: collectionId, kind: kind }).path
 end function
 

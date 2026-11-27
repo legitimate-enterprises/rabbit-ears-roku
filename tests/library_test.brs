@@ -22,8 +22,9 @@ sub testNextEpisodeStartsAtTheTop()
 end sub
 
 sub testEpisodeAfterIsTheNextInItsSeason()
-    assertEqual(libraryEpisodeAfter(episodes(), 2).id, 3, "mid-season")
-    assertEqual(libraryEpisodeAfter(episodes(), 4), invalid, "season finale")
+    season = [{ id: uid(1) }, { id: uid(2) }, { id: uid(3) }, { id: uid(4) }]
+    assertEqual(libraryEpisodeAfter(season, uid(2)).id, uid(3), "mid-season")
+    assertEqual(libraryEpisodeAfter(season, uid(4)), invalid, "season finale")
 end sub
 
 sub testNextSeasonSkipsSpecials()
@@ -207,11 +208,11 @@ sub testKidsChipAsksTheServerOnlyWhileKidsContentIsHidden()
 end sub
 
 sub testAProfileHidesKidsContentOnlyWhenItsOwnFlagIsOn()
-    profiles = [{ id: 1, kind: "adult", hideKidsContent: true }, { id: 2, kind: "adult" }, { id: 3, kind: "kid" }]
-    assertEqual(libraryHides(profiles, 1), true)
-    assertEqual(libraryHides(profiles, 2), false, "no flag")
-    assertEqual(libraryHides(profiles, 3), false, "a kid")
-    assertEqual(libraryHides(profiles, 9), false, "unknown")
+    profiles = [{ id: uid(1), kind: "adult", hideKidsContent: true }, { id: uid(2), kind: "adult" }, { id: uid(3), kind: "kid" }]
+    assertEqual(libraryHides(profiles, uid(1)), true)
+    assertEqual(libraryHides(profiles, uid(2)), false, "no flag")
+    assertEqual(libraryHides(profiles, uid(3)), false, "a kid")
+    assertEqual(libraryHides(profiles, uid(9)), false, "unknown")
 end sub
 
 sub testEveryTabShowsUntilTheServerHasAnswered()
@@ -420,17 +421,17 @@ sub testAWashColorIsRRGGBBFFAndNeedsThreeValidOnes()
 end sub
 
 sub testADetailsRowHoldsTheOtherMembersOfEachOccasionAndSkipsAnEmptyOne()
-    active = [{ id: 7, name: "Christmas" }, { id: 8, name: "Halloween" }]
-    rows = libraryOccasionRelated(active, [[{ id: 31 }, { id: 32 }], [{ id: 31 }]], 31)
+    active = [{ id: uid(7), name: "Christmas" }, { id: uid(8), name: "Halloween" }]
+    rows = libraryOccasionRelated(active, [[{ id: uid(31) }, { id: uid(32) }], [{ id: uid(31) }]], uid(31))
     assertEqual(rows.Count(), 1)
     assertEqual(rows[0].collection.name, "Christmas")
     assertEqual(rows[0].items.Count(), 1)
-    assertEqual(rows[0].items[0].id, 32)
+    assertEqual(rows[0].items[0].id, uid(32))
 end sub
 
 sub testActiveOccasionsForATitleAskForItsId()
-    r = apiRequest("listActiveOccasions", { profileId: 3 }, { date: "2026-12-05", itemId: 31 })
-    assertEqual(r.path, "/api/v2/profiles/3/occasions?date=2026-12-05&itemId=31")
+    r = apiRequest("listActiveOccasions", { profileId: uid(3) }, { date: "2026-12-05", itemId: uid(31) })
+    assertEqual(r.path, "/api/v2/profiles/" + uid(3) + "/occasions?date=2026-12-05&itemId=" + uid(31))
 end sub
 
 sub testActiveOccasionsAskForTheDeviceDateAndEachOneItsTitles()

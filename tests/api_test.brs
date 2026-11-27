@@ -173,10 +173,10 @@ sub testPlaybackBodyNamesTheEditionOnlyWhenChosen()
 end sub
 
 sub testTrackBodyKeepsTheAudioTrackTheViewerChose()
-    assertEqual(apiTrackBody(5, "812"), { audioTrackId: 5, subtitleTrackId: 812 })
-    assertEqual(apiTrackBody(5, "off"), { audioTrackId: 5 }, "off names no subtitle track")
+    assertEqual(apiTrackBody(uid(5), uid(812)), { audioTrackId: uid(5), subtitleTrackId: uid(812) })
+    assertEqual(apiTrackBody(uid(5), "off"), { audioTrackId: uid(5) }, "off names no subtitle track")
     assertEqual(apiTrackBody(invalid, "forced"), {}, "the server's audio track, forced subtitles only")
-    assertTrue(Instr(1, FormatJson(apiTrackBody(5, "812")), """audioTrackId"":5,""subtitleTrackId"":812") > 0, "camel case on the wire")
+    assertTrue(Instr(1, FormatJson(apiTrackBody(uid(5), uid(812))), """audioTrackId"":""" + uid(5) + """,""subtitleTrackId"":""" + uid(812) + """") > 0, "camel case on the wire")
 end sub
 
 sub testStationRequests()
