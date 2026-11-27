@@ -19,7 +19,8 @@ Ears server or is invited to one.
   `manifest`, which only the owner raises, and the commit count on `main`.
 - `make deploy` tags `origin/main` `v<version>` once CI is green there.
   The tag's release job signs the package on the developer-mode Roku that
-  holds the signing key and attaches it to the tag's GitHub release.
+  holds the signing key and attaches it to the tag's GitHub release as
+  `rabbit-ears-v<version>.pkg`.
 
 Limitations: the signed package is uploaded to the Roku Developer Dashboard
 by hand, and the release job needs a runner on that Roku's network.

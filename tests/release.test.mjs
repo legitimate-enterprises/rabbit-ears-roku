@@ -138,8 +138,9 @@ test("signs the sideloaded build and attaches the package to the tag's release",
     );
     assert.equal(field(roku.requests[1].body, "archive"), "zip");
     assert.equal(field(roku.requests[2].body, "app_name"), "Rabbit Ears/7.2.5");
-    assert.equal(read(dir, "build/rabbit-ears.pkg"), "signed package");
-    assert.match(read(dir, "gh.log"), /^release create v7\.2\.5 build\/rabbit-ears\.pkg .*--verify-tag/);
+    assert.equal(read(dir, "build/rabbit-ears-v7.2.5.pkg"), "signed package");
+    assert.match(read(dir, "gh.log"), /^release create v7\.2\.5 build\/rabbit-ears-v7\.2\.5\.pkg .*--verify-tag/);
+    assert.match(read(dir, "gh.log"), /--notes Upload rabbit-ears-v7\.2\.5\.pkg /);
     assert.match(read(dir, "curl.log"), /plugin_package/);
     for (const text of [out, read(dir, "curl.log")]) {
       assert.ok(!text.includes(DEV_PASSWORD) && !text.includes(SIGNING_PASSWORD), text);
@@ -194,7 +195,7 @@ test("a signing password the device's key refuses publishes nothing", () =>
     const { code, out } = await release(dir, roku.host, { ROKU_SIGNING_PASSWORD: "wrong" });
     assert.notEqual(code, 0);
     assert.match(out, /packaging failed: Failed: Invalid Password\./);
-    assert.equal(read(dir, "build/rabbit-ears.pkg"), undefined);
+    assert.equal(read(dir, "build/rabbit-ears-v7.2.5.pkg"), undefined);
     assert.equal(read(dir, "gh.log"), undefined);
   }));
 
@@ -209,7 +210,7 @@ test("a re-run replaces the package on the release its first attempt made", () =
   withRoku({}, async (roku, dir) => {
     const { code, out } = await release(dir, roku.host, { GH_EXISTS: "1" });
     assert.equal(code, 0, out);
-    assert.match(read(dir, "gh.log"), /\nrelease upload v7\.2\.5 build\/rabbit-ears\.pkg --clobber\n$/);
+    assert.match(read(dir, "gh.log"), /\nrelease upload v7\.2\.5 build\/rabbit-ears-v7\.2\.5\.pkg --clobber\n$/);
   }));
 
 test("a release outside CI is refused before anything else", () =>
@@ -234,7 +235,7 @@ test("an empty package download publishes nothing", () =>
     const { code, out } = await release(dir, roku.host);
     assert.notEqual(code, 0);
     assert.match(out, /downloading the package failed/);
-    assert.equal(read(dir, "build/rabbit-ears.pkg"), undefined);
+    assert.equal(read(dir, "build/rabbit-ears-v7.2.5.pkg"), undefined);
     assert.equal(read(dir, "gh.log"), undefined);
   }));
 

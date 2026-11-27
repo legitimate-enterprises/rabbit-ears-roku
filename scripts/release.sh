@@ -21,6 +21,7 @@ for var in ROKU_HOST ROKU_PASSWORD ROKU_SIGNING_PASSWORD GH_TOKEN; do
 done
 scripts/cut-release.sh --check "$tag"
 version="${tag#v}"
+pkg_name="rabbit-ears-$tag.pkg"
 
 make --no-print-directory build
 
@@ -84,10 +85,10 @@ pkg="$(first '"pkgPath" *: *"pkgs/[^"]+\.pkg"')"
 
 status="$(device "http://$ROKU_HOST/$pkg")"
 [ "$status" = 200 ] && [ -s "$page" ] || die "downloading the package failed: $(failure "$status")"
-mv "$page" build/rabbit-ears.pkg
-echo "signed build/rabbit-ears.pkg for $tag"
+mv "$page" "build/$pkg_name"
+echo "signed build/$pkg_name for $tag"
 
 # A re-run finds the release its first attempt made.
-notes="Upload rabbit-ears.pkg under App package in the Roku Developer Dashboard."
-gh release create "$tag" build/rabbit-ears.pkg --verify-tag --title "Roku $version" --notes "$notes" ||
-    gh release upload "$tag" build/rabbit-ears.pkg --clobber
+notes="Upload $pkg_name under App package in the Roku Developer Dashboard."
+gh release create "$tag" "build/$pkg_name" --verify-tag --title "Roku $version" --notes "$notes" ||
+    gh release upload "$tag" "build/$pkg_name" --clobber
