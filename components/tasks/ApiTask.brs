@@ -346,7 +346,21 @@ function loadHome(a as object) as object
             if s.onAir.status = "on_air" then onNow.Push(s)
         end for
     end if
-    return done({ hero: home.hero, onNow: onNow, also: home.also, nextUp: home.nextUp, occasions: libraryHomeOccasions(active, lists), recent: recent, videos: videos })
+    ' The title rows' resume bars read their titles' states, keyed by item id.
+    shown = {}
+    for each l in lists
+        for each t in l
+            shown[t.id.ToStr()] = true
+        end for
+    end for
+    for each t in recent
+        shown[t.id.ToStr()] = true
+    end for
+    titleStates = {}
+    for each w in states.data
+        if shown.DoesExist(w.itemId.ToStr()) then titleStates[w.itemId.ToStr()] = w
+    end for
+    return done({ hero: home.hero, onNow: onNow, also: home.also, nextUp: home.nextUp, occasions: libraryHomeOccasions(active, lists), recent: recent, videos: videos, states: titleStates })
 end function
 
 ' A library's titles with what its chips, badges and captions read: watch

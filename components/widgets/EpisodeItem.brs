@@ -1,5 +1,6 @@
 ' Content carries title, shortDescriptionLine1 (facts), description,
-' hdPosterUrl, and the added fields itemId, progress (0 to 1) and watched.
+' hdPosterUrl, and the added fields itemId, watched and progress, 0 to 1,
+' absent unless the episode resumes.
 sub draw()
     uiClear(m.top)
     c = m.top.itemContent
@@ -16,9 +17,8 @@ sub draw()
     if c.watched
         uiImage(still, "disc.png", 194, 10, 36, 36, "0x000000AA")
         uiImage(still, "check.png", 200, 16, 24, 24, uiColor("ok"))
-    else if c.progress > 0
-        uiRect(still, 0, 129, Int(240 * c.progress), 6, uiColor("accent"))
     end if
+    uiProgress(still, 0, 129, 240, c.progress)
     uiLabel(g, c.title, 30, true, "text", 282, 22).width = 780
     uiLabel(g, c.shortDescriptionLine1, 24, false, "dim", 282, 64).width = 780
     uiLabel(g, c.description, 24, false, "sub", 282, 100).width = 780

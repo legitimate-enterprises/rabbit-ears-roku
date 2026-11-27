@@ -225,6 +225,10 @@ sub addTiles(root as object, rows as object)
             colorId = t.artId
         end if
         c.addFields({ itemId: colorId, artWidth: m.width, artHeight: m.artHeight, badge: t.badge, glyph: m.chip, round: shapeOf(m.chip) = "round", shared: m.chip = "playlists" and x.shared })
+        if m.chip = "videos" or m.chip = "unwatched"
+            done = libraryResumeFraction({ item: x, state: x, video: true })
+            if done <> invalid then c.addFields({ progress: done })
+        end if
     end for
 end sub
 

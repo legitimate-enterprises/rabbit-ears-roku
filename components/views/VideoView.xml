@@ -8,6 +8,7 @@
     <script type="text/brightscript" uri="pkg:/components/common/view.brs" />
     <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/together.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/live.brs" />

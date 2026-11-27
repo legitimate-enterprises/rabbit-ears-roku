@@ -104,6 +104,8 @@ sub addTiles(root as object, videos as object)
         badge = uiPick(v.watched <> invalid and v.watched, "", "dot")
         t.hdPosterUrl = uiArtUrl(v.id, "poster")
         t.addFields({ itemId: v.id, artWidth: m.tileWidth, artHeight: m.tileHeight, badge: badge, glyph: "video" })
+        done = libraryResumeFraction({ item: v, state: v, video: true })
+        if done <> invalid then t.addFields({ progress: done })
     end for
 end sub
 

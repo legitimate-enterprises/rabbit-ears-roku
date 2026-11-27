@@ -157,7 +157,8 @@ end function
 
 sub drawMovie(item as object)
     shown = chooseEdition(item)
-    uiArt(m.top, item, "poster", 96, 96, 400, 600)
+    art = uiArt(m.top, item, "poster", 96, 96, 400, 600)
+    uiProgress(art, 0, 594, 400, libraryResumeFraction({ item: item, state: m.d.state, video: false }, shown))
     x = 552
     top = titleLines(itemTitle(item), 76, x, 90, 1272)
     rating = ""
@@ -289,7 +290,7 @@ function collectionsRow(item as object, x as integer, y as integer) as integer
 end function
 
 sub drawShow(item as object)
-    uiArt(m.top, item, "poster", 96, 96, 400, 600)
+    art = uiArt(m.top, item, "poster", 96, 96, 400, 600)
     x = 552
     top = titleLines(itemTitle(item), 76, x, 90, 1272)
     n = libraryRegularSeasons(m.d.seasons)
@@ -304,6 +305,7 @@ sub drawShow(item as object)
         state = m.d.states[nextEp.id.ToStr()]
         code = formatEpisodeCode(nextEp)
         label = "Play " + code
+        uiProgress(art, 0, 594, 400, libraryResumeFraction({ item: nextEp, state: state, video: false }))
         if libraryInProgress(state)
             label = "Resume " + code
             parts.Push({ text: formatLeft(runtimeOf(nextEp), state.positionMs) + " in " + code, color: "accent" })
@@ -333,6 +335,7 @@ sub drawShow(item as object)
         id = "s" + i.ToStr()
         g = uiPanel(m.top, id, 12, sx, y + 50, 170, 255)
         uiArt(g, s, "poster", 0, 0, 170, 255)
+        uiProgress(g, 0, 249, 170, libraryNextEpisodeFraction(m.d.episodes[s.id.ToStr()], m.d.states))
         ids = []
         for each e in m.d.episodes[s.id.ToStr()]
             ids.Push(e.id)
@@ -359,9 +362,7 @@ end sub
 sub drawEpisode(item as object)
     still = uiArt(m.top, item, "poster", 96, 96, 640, 360)
     state = m.d.state
-    if libraryInProgress(state) and runtimeOf(item) <> invalid
-        uiRect(still, 0, 352, Int(640 * state.positionMs / (runtimeOf(item) * 60000)), 8, uiColor("accent"))
-    end if
+    uiProgress(still, 0, 354, 640, libraryResumeFraction({ item: item, state: state, video: false }))
     x = 792
     uiLabel(m.top, itemTitle(m.d.show) + " · Season " + m.d.season.seasonNumber.ToStr(), 28, true, "dim", x, 90)
     number = ""

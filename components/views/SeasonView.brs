@@ -54,18 +54,16 @@ sub draw()
         runtime = runtimeOf(e)
         line = formatRuntime(runtime)
         if e.metadata <> invalid and e.metadata.releaseDate <> invalid then line = line + " · " + formatDate(e.metadata.releaseDate)
-        progress = 0
-        if libraryInProgress(state)
-            line = line + " · " + formatLeft(runtime, state.positionMs)
-            if runtime <> invalid and runtime > 0 then progress = state.positionMs / (runtime * 60000)
-        end if
+        if libraryInProgress(state) then line = line + " · " + formatLeft(runtime, state.positionMs)
         number = ""
         if e.episodeNumber <> invalid then number = e.episodeNumber.ToStr() + ". "
         c.title = number + itemTitle(e)
         c.shortDescriptionLine1 = line
         c.description = overviewOf(e)
         c.hdPosterUrl = uiArtUrl(e.id, "poster")
-        c.addFields({ itemId: e.id, progress: progress, watched: state <> invalid and state.watched })
+        c.addFields({ itemId: e.id, watched: state <> invalid and state.watched })
+        done = libraryResumeFraction({ item: e, state: state, video: false })
+        if done <> invalid then c.addFields({ progress: done })
     end for
     list.content = content
     if m.focus > 0 then list.jumpToItem = m.focus

@@ -41,11 +41,7 @@ sub draw()
         uiGlyph(g, c.glyph, w, h)
         uiArtPoster(g, w, h, c.hdPosterUrl)
     end if
-    ' The bar is the Continue watching hero's: the same track, gold and height.
-    if c.progress <> invalid
-        uiRect(g, 0, h - 6, w, 6, "0xFFFFFF40")
-        uiRect(g, 0, h - 6, Int(w * c.progress), 6, uiColor("accent"))
-    end if
+    uiProgress(g, 0, h - 6, w, c.progress)
     if c.plays <> invalid and c.plays
         uiImage(g, "disc.png", (w - 80) \ 2, (h - 80) \ 2, 80, 80, "0x00000099")
         uiImage(g, "play.png", (w - 40) \ 2, (h - 40) \ 2, 40, 40, uiColor("text"))

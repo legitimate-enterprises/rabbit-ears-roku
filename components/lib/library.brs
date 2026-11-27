@@ -376,6 +376,34 @@ function libraryResumes(state as dynamic, edition as dynamic) as boolean
     return state.editionId = edition.id
 end function
 
+' A resume bar's fill, 0 to 1, for e as libraryRuntimeOf reads it: invalid
+' unless playing it, in edition when one is chosen, resumes, or when its
+' runtime is unknown. A show resumes an episode, never itself.
+function libraryResumeFraction(e as object, edition = invalid as dynamic) as dynamic
+    if not libraryResumes(e.state, edition) then return invalid
+    ms = invalid
+    if e.video
+        ms = e.item.durationMs
+    else if e.item.kind = "show"
+        return invalid
+    else if edition <> invalid and edition.runtimeMs <> invalid
+        ms = edition.runtimeMs
+    else if e.item.metadata <> invalid and e.item.metadata.runtimeMinutes <> invalid
+        ms = e.item.metadata.runtimeMinutes * 60000
+    end if
+    if ms = invalid or ms <= 0 then return invalid
+    if e.state.positionMs >= ms then return 1
+    return e.state.positionMs / ms
+end function
+
+' A show's or season's resume bar: that of the episode libraryNextEpisode
+' picks, which its play action plays.
+function libraryNextEpisodeFraction(episodes as object, states as object) as dynamic
+    i = libraryNextEpisode(episodes, states)
+    if i < 0 then return invalid
+    return libraryResumeFraction({ item: episodes[i], state: states[episodes[i].id.ToStr()], video: false })
+end function
+
 ' Extended · 3h 48m · 4K, 1080p: the cut, its runtime and its copies.
 function libraryEditionLabel(edition as object) as string
     parts = [edition.name]

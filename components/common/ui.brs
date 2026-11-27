@@ -67,6 +67,14 @@ function uiShape(parent as object, radius as integer, x as integer, y as integer
     return uiImage(parent, "fill" + radius.ToStr() + ".9.png", x, y, w, h, color)
 end function
 
+' The one resume bar, 6 tall from x, y and w wide: done, 0 to 1, in accent
+' over a dim track, as libraryResumeFraction answers it; none for invalid.
+sub uiProgress(parent as object, x as integer, y as integer, w as integer, done as dynamic)
+    if done = invalid then return
+    uiRect(parent, x, y, w, 6, "0xFFFFFF40")
+    uiRect(parent, x, y, Int(w * done), 6, uiColor("accent"))
+end sub
+
 ' The one focus ring: 5 px goldenrod, 5 px off the shape it marks.
 function uiRing(parent as object, x as integer, y as integer, w as integer, h as integer) as object
     r = uiRingReach()

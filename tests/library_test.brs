@@ -464,3 +464,41 @@ sub testSelectingANextUpEpisodePlaysItResumingItsEdition()
     clip = { item: { id: 5, title: "Clip" }, state: invalid, video: true }
     assertEqual(libraryNextUpRoute(clip), { to: "details", view: "VideoView", video: clip.item }, "a video keeps its details")
 end sub
+
+sub testResumeBarIsTheStartedTitlesWatchedFraction()
+    movie = { id: 1, kind: "movie", metadata: { runtimeMinutes: 60 } }
+    assertEqual(libraryResumeFraction({ item: movie, state: { watched: false, positionMs: 1800000 }, video: false }), 0.5, "started, not finished")
+    assertEqual(libraryResumeFraction({ item: movie, state: { watched: true, positionMs: 0 }, video: false }), invalid, "finished")
+    assertEqual(libraryResumeFraction({ item: movie, state: invalid, video: false }), invalid, "never played")
+    assertEqual(libraryResumeFraction({ item: movie, state: { watched: false, positionMs: 4000000 }, video: false }), 1, "past its runtime")
+    assertEqual(libraryResumeFraction({ item: { id: 2, kind: "movie" }, state: { watched: false, positionMs: 1000 }, video: false }), invalid, "runtime unknown")
+    assertEqual(libraryResumeFraction({ item: { id: 3, kind: "show", metadata: { runtimeMinutes: 60 } }, state: { watched: false, positionMs: 1800000 }, video: false }), invalid, "a show resumes an episode, never itself")
+end sub
+
+sub testResumeBarFollowsTheEditionPlayWouldPlay()
+    onExtended = { watched: false, positionMs: 6840000, editionId: 32 }
+    movie = { id: 1, kind: "movie", metadata: { runtimeMinutes: 132 } }
+    assertEqual(libraryResumeFraction({ item: movie, state: onExtended, video: false }, cuts()[1]), 0.5, "the edition's own runtime")
+    assertEqual(libraryResumeFraction({ item: movie, state: onExtended, video: false }, cuts()[0]), invalid, "another edition starts from the beginning")
+end sub
+
+sub testResumeBarOfAYouTubeVideo()
+    v = { id: 5, title: "Clip", watched: false, positionMs: 270000, durationMs: 1080000 }
+    assertEqual(libraryResumeFraction({ item: v, state: v, video: true }), 0.25, "its own position and duration")
+    v.positionMs = 0
+    assertEqual(libraryResumeFraction({ item: v, state: v, video: true }), invalid, "not started")
+    assertEqual(libraryResumeFraction({ item: { id: 6, positionMs: 1000 }, state: { positionMs: 1000 }, video: true }), invalid, "no duration")
+end sub
+
+sub testShowResumeBarIsItsNextEpisodesWhenThatOneIsStarted()
+    eps = [{ id: 1, metadata: { runtimeMinutes: 40 } }, { id: 2, metadata: { runtimeMinutes: 40 } }, { id: 3, metadata: { runtimeMinutes: 40 } }]
+    started = { "1": { watched: true, positionMs: 0, lastPlayedAt: "2025-02-01T00:00:00Z" }, "2": { watched: false, positionMs: 600000, lastPlayedAt: "2025-02-02T00:00:00Z" } }
+    assertEqual(libraryNextEpisodeFraction(eps, started), 0.25, "resumes episode 2")
+    unstarted = { "1": { watched: true, positionMs: 0, lastPlayedAt: "2025-02-01T00:00:00Z" } }
+    assertEqual(libraryNextEpisodeFraction(eps, unstarted), invalid, "plays episode 2 from the beginning")
+    all = {}
+    for each e in eps
+        all[e.id.ToStr()] = { watched: true, positionMs: 0, lastPlayedAt: "2025-02-01T00:00:00Z" }
+    end for
+    assertEqual(libraryNextEpisodeFraction(eps, all), invalid, "all watched")
+end sub

@@ -48,18 +48,24 @@ sub addProgressRow(rows as object, title as string, entries as object, plays = f
         c = tile(e.item, name, libraryProgressLine(e), kind, 400, 225)
         ' A tile that plays says so with an arrow over its art, unless it opens a video's details.
         if plays and not e.video then c.addFields({ plays: true })
+        done = libraryResumeFraction(e)
+        if done <> invalid then c.addFields({ progress: done })
         row.appendChild(c)
     end for
 end sub
 
-' One row of poster tiles: Recently added and each occasion.
-sub addTitleRow(rows as object, title as string, items as object)
+' One row of poster tiles: Recently added and each occasion. states, keyed
+' by item id, holds the titles' watch states.
+sub addTitleRow(rows as object, title as string, items as object, states as object)
     row = rows.CreateChild("ContentNode")
     row.title = title
     for each t in items
         caption = formatYear(t)
         if t.kind = "movie" and t.metadata <> invalid then caption = formatRuntime(t.metadata.runtimeMinutes)
-        row.appendChild(tile(t, itemTitle(t), caption, "poster", 220, 330))
+        c = tile(t, itemTitle(t), caption, "poster", 220, 330)
+        done = libraryResumeFraction({ item: t, state: states[t.id.ToStr()], video: false })
+        if done <> invalid then c.addFields({ progress: done })
+        row.appendChild(c)
     end for
 end sub
 
@@ -135,13 +141,7 @@ sub onHome(event as object)
         uiLabel(m.top, "Continue watching", 24, true, "accent", 96, 190)
         uiLabel(m.top, title, 76, true, "text", 96, 220, 1500)
         uiLabel(m.top, libraryProgressLine(hero), 30, false, "sub", 96, 318)
-        uiRect(m.top, 96, 372, 520, 6, "0xFFFFFF40")
-        runtime = libraryRuntimeOf(hero)
-        if runtime <> invalid and runtime > 0
-            done = hero.state.positionMs / (runtime * 600)
-            if done > 100 then done = 100
-            uiRect(m.top, 96, 372, Int(5.2 * done), 6, uiColor("accent"))
-        end if
+        uiProgress(m.top, 96, 372, 520, libraryResumeFraction(hero))
         m.controls.resume = uiButton(m.top, "resume", "Resume", "p", 0, 0, false, "play")
         m.controls.details = uiButton(m.top, "details", "Details", "s", 0, 0)
         uiRow([m.controls.resume, m.controls.details], 96, 400, 24)
@@ -181,7 +181,7 @@ sub onHome(event as object)
         heights.Push(412)
     end if
     for each o in r.data.occasions
-        addTitleRow(rows, o.title, o.items)
+        addTitleRow(rows, o.title, o.items, r.data.states)
         addSeeAllTile(rows.getChild(rows.getChildCount() - 1), 220, 330)
         entries = []
         entries.Append(o.items)
@@ -190,7 +190,7 @@ sub onHome(event as object)
         sizes.Push([220, 410])
         heights.Push(480)
     end for
-    addTitleRow(rows, "Recently added", r.data.recent)
+    addTitleRow(rows, "Recently added", r.data.recent, r.data.states)
     m.rowItems.Push(r.data.recent)
     sizes.Push([220, 410])
     heights.Push(480)
@@ -203,6 +203,8 @@ sub onHome(event as object)
             c = tile(v, v.title, formatVideoCaption(v, today, true), "poster", 400, 225)
             c.glyph = "video"
             c.badge = "dot"
+            done = libraryResumeFraction({ item: v, state: v, video: true })
+            if done <> invalid then c.addFields({ progress: done })
             row.appendChild(c)
         end for
         m.videoRow = m.rowItems.Count()

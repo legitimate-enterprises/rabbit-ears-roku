@@ -90,6 +90,8 @@ sub show(sections as object)
             else if s.kind = "videos"
                 c.title = x.title
                 c.shortDescriptionLine1 = formatVideoCaption(x, today, true)
+                done = libraryResumeFraction({ item: x, state: x, video: true })
+                if done <> invalid then c.addFields({ progress: done })
             else if s.kind = "albums" or s.kind = "songs"
                 c.title = x.title
                 c.shortDescriptionLine1 = x.artistName

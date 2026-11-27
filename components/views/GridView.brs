@@ -199,6 +199,8 @@ sub fill()
             if item.kind = "movie" then badge = "dot"
         end if
         c.addFields({ itemId: item.id, artWidth: m.width, artHeight: h, badge: badge, glyph: item.kind })
+        done = libraryResumeFraction({ item: item, state: m.data.states[item.id.ToStr()], video: false })
+        if done <> invalid then c.addFields({ progress: done })
     end for
     m.grid.content = root
 end sub
