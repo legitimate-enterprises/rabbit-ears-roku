@@ -56,41 +56,41 @@ end sub
 sub testRequestSubstitutesPathParams()
     r = apiRequest("getWatchState", { profileId: 3, itemId: 41 })
     assertEqual(r.method, "GET")
-    assertEqual(r.path, "/api/v1/profiles/3/watch-state/41")
+    assertEqual(r.path, "/api/v2/profiles/3/watch-state/41")
     assertEqual(r.body, "")
 end sub
 
 sub testRequestQueryIsSortedAndEncoded()
     r = apiRequest("listItems", {}, { q: "Dune: Part Two", limit: 50, kind: "movie" })
-    assertEqual(r.path, "/api/v1/items?kind=movie&limit=50&q=Dune%3A%20Part%20Two")
+    assertEqual(r.path, "/api/v2/items?kind=movie&limit=50&q=Dune%3A%20Part%20Two")
 end sub
 
 sub testAnArrayQueryValueIsARepeatedParameter()
     r = apiRequest("listEvents", {}, { kinds: ["library", "household"], after: "3.2" })
-    assertEqual(r.path, "/api/v1/events?after=3.2&kinds=library&kinds=household")
+    assertEqual(r.path, "/api/v2/events?after=3.2&kinds=library&kinds=household")
 end sub
 
 sub testHideKidsContentSavesOnTheProfilePreferences()
     r = apiRequest("setProfilePreferences", { profileId: 3 }, {}, { hideKidsContent: true })
     assertEqual(r.method, "PUT")
-    assertEqual(r.path, "/api/v1/profiles/3/preferences")
+    assertEqual(r.path, "/api/v2/profiles/3/preferences")
     assertEqual(r.body, "{" + Chr(34) + "hideKidsContent" + Chr(34) + ":true}", "spelled as the spec spells it")
 end sub
 
 sub testListItemsAsksForKidsContentByTheSpecsName()
     r = apiRequest("listItems", {}, { kind: "movie", kidsContent: true })
-    assertEqual(r.path, "/api/v1/items?kidsContent=true&kind=movie")
+    assertEqual(r.path, "/api/v2/items?kidsContent=true&kind=movie")
 end sub
 
 sub testRequestPollTokenInQuery()
     r = apiRequest("pollDeviceLink", { linkId: 7 }, { token: "a/b+c" })
-    assertEqual(r.path, "/api/v1/device-links/7?token=a%2Fb%2Bc")
+    assertEqual(r.path, "/api/v2/device-links/7?token=a%2Fb%2Bc")
 end sub
 
 sub testRequestBodyIsJson()
     r = apiRequest("signIn", {}, {}, { email: "a@example.com", password: "pw", deviceName: "Living room", platform: "roku" })
     assertEqual(r.method, "POST")
-    assertEqual(r.path, "/api/v1/auth/sign-in")
+    assertEqual(r.path, "/api/v2/auth/sign-in")
     assertEqual(ParseJson(r.body), { deviceName: "Living room", email: "a@example.com", password: "pw", platform: "roku" })
 end sub
 
@@ -144,21 +144,21 @@ sub testTooManyAttemptsSaysWhenToTryAgain()
 end sub
 
 sub testMusicAndYouTubeRequests()
-    assertEqual(apiRequest("listPlaylistEntries", { profileId: 3, playlistId: 9 }).path, "/api/v1/profiles/3/playlists/9/entries")
-    assertEqual(apiRequest("listPlaylistPlayOrder", { profileId: 3, playlistId: 9 }).path, "/api/v1/profiles/3/playlists/9/play-order")
-    assertEqual(apiRequest("listCollections", {}, { limit: 200, offset: 0 }).path, "/api/v1/collections?limit=200&offset=0")
-    assertEqual(apiRequest("listCollectionMovies", { collectionId: 4 }).path, "/api/v1/collections/4/movies")
-    assertEqual(apiRequest("getCollectionArtwork", { collectionId: 4, kind: "poster" }).path, "/api/v1/collections/4/artwork/poster")
-    assertEqual(apiRequest("getPersonArtwork", { personId: 9 }).path, "/api/v1/people/9/artwork")
-    assertEqual(apiRequest("listYouTubeVideos", {}, { sort: "newest", unwatched: true, limit: 20 }).path, "/api/v1/youtube/videos?limit=20&sort=newest&unwatched=true")
+    assertEqual(apiRequest("listPlaylistEntries", { profileId: 3, playlistId: 9 }).path, "/api/v2/profiles/3/playlists/9/entries")
+    assertEqual(apiRequest("listPlaylistPlayOrder", { profileId: 3, playlistId: 9 }).path, "/api/v2/profiles/3/playlists/9/play-order")
+    assertEqual(apiRequest("listCollections", {}, { limit: 200, offset: 0 }).path, "/api/v2/collections?limit=200&offset=0")
+    assertEqual(apiRequest("listCollectionMovies", { collectionId: 4 }).path, "/api/v2/collections/4/movies")
+    assertEqual(apiRequest("getCollectionArtwork", { collectionId: 4, kind: "poster" }).path, "/api/v2/collections/4/artwork/poster")
+    assertEqual(apiRequest("getPersonArtwork", { personId: 9 }).path, "/api/v2/people/9/artwork")
+    assertEqual(apiRequest("listYouTubeVideos", {}, { sort: "newest", unwatched: true, limit: 20 }).path, "/api/v2/youtube/videos?limit=20&sort=newest&unwatched=true")
     r = apiRequest("putYouTubeChannelWatchState", { profileId: 3, channelId: 41 }, {}, { watched: true })
-    assertEqual([r.method, r.path, r.body], ["PUT", "/api/v1/profiles/3/youtube/channels/41/watch-state", "{""watched"":true}"])
+    assertEqual([r.method, r.path, r.body], ["PUT", "/api/v2/profiles/3/youtube/channels/41/watch-state", "{""watched"":true}"])
 end sub
 
 sub testWatchTogetherStateIsAPutWithItsPosition()
     r = apiRequest("setWatchTogetherState", { watchTogetherId: 7 }, {}, { playing: false, positionMs: 4360000 })
     assertEqual(r.method, "PUT")
-    assertEqual(r.path, "/api/v1/watch-together/7/state")
+    assertEqual(r.path, "/api/v2/watch-together/7/state")
     assertEqual(ParseJson(r.body), { playing: false, positionMs: 4360000 })
 end sub
 
@@ -180,10 +180,10 @@ sub testTrackBodyKeepsTheAudioTrackTheViewerChose()
 end sub
 
 sub testStationRequests()
-    assertEqual(apiRequest("listStations", {}, { kind: "movies", limit: 200, offset: 0 }).path, "/api/v1/stations?kind=movies&limit=200&offset=0")
-    assertEqual(apiRequest("getStation", { stationId: 4 }).path, "/api/v1/stations/4")
+    assertEqual(apiRequest("listStations", {}, { kind: "movies", limit: 200, offset: 0 }).path, "/api/v2/stations?kind=movies&limit=200&offset=0")
+    assertEqual(apiRequest("getStation", { stationId: 4 }).path, "/api/v2/stations/4")
     r = apiRequest("startStationPlayback", { stationId: 4 }, {}, apiStationBody({}, { decoder: {} }))
-    assertEqual([r.method, r.path], ["POST", "/api/v1/stations/4/playback"])
+    assertEqual([r.method, r.path], ["POST", "/api/v2/stations/4/playback"])
 end sub
 
 sub testStationBodyIsTheSnapshotAndChosenTracksOnly()
@@ -218,7 +218,7 @@ sub testOnlyADeviceLockedReplyGoesToThePicker()
     assertTrue(not apiLocked(apiResult(403, "{""code"": ""forbidden"", ""message"": ""no""}")), "another 403")
     assertTrue(not apiLocked(apiResult(-28, "")), "the server never reached")
     assertTrue(not apiLocked(apiResult(204, "")), "a success")
-    assertEqual(apiRequest("lockDevice"), { body: "", method: "POST", path: "/api/v1/me/lock" })
+    assertEqual(apiRequest("lockDevice"), { body: "", method: "POST", path: "/api/v2/me/lock" })
 end sub
 
 sub testTheHandoffCheckWaitsThreeSecondsAndAHeldPollItsHold()
@@ -238,9 +238,9 @@ end sub
 ' A Roku stores a literal's unquoted keys in lower case, as these are written.
 sub testRequestSpellsNamesAsTheSpec()
     r = apiRequest("getWatchState", { "profileid": 3, "itemid": 9 })
-    assertEqual(r.path, "/api/v1/profiles/3/watch-state/9")
+    assertEqual(r.path, "/api/v2/profiles/3/watch-state/9")
     r = apiRequest("listYouTubeVideos", {}, { "inprogress": true })
-    assertEqual(r.path, "/api/v1/youtube/videos?inProgress=true")
+    assertEqual(r.path, "/api/v2/youtube/videos?inProgress=true")
     r = apiRequest("startPlayback", {}, {}, { "positionms": 5, snapshot: { decoder: { "videocodecs": [] } }, tracks: [{ "audiotrackid": 1 }] })
     assertTrue(Instr(1, r.body, """positionMs"":5") > 0, r.body)
     assertTrue(Instr(1, r.body, """videoCodecs""") > 0, r.body)

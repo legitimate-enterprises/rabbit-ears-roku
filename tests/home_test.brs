@@ -15,6 +15,6 @@ sub testStreamsPlayFromTheAddressTheCheckConfirmed()
 end sub
 
 sub testTheCheckIsInTheApi()
-    assertEqual(apiRequest("startLocalCheck"), { body: "", method: "POST", path: "/api/v1/local-checks" })
-    assertEqual(apiRequest("confirmLocalCheck", { checkId: "c1" }, {}, { nonce: "n", proof: "p" }).path, "/api/v1/local-checks/c1/confirmation")
+    assertEqual(apiRequest("startLocalCheck"), { body: "", method: "POST", path: "/api/v2/local-checks" })
+    assertEqual(apiRequest("confirmLocalCheck", { checkId: "c1" }, {}, { nonce: "n", proof: "p" }).path, "/api/v2/local-checks/c1/confirmation")
 end sub

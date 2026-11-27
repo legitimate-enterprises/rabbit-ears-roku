@@ -11,7 +11,7 @@ function cacheFixture() as object
     g.asked = []
     g.routes = {}
     g.onAsk = invalid
-    cacheServes("/api/v1/items", cacheMovies(20))
+    cacheServes("/api/v2/items", cacheMovies(20))
     return cacheFresh()
 end function
 
@@ -41,7 +41,7 @@ function cacheMovies(id as integer) as string
     return FormatJson({ items: [{ id: id }], nextoffset: invalid })
 end function
 
-function cacheTimesAsked(path = "/api/v1/items" as string) as integer
+function cacheTimesAsked(path = "/api/v2/items" as string) as integer
     n = 0
     for each p in GetGlobalAA().asked
         if p = path then n = n + 1
@@ -51,7 +51,7 @@ end function
 
 ' The ids a listing read through ctx answered, or its status when it failed.
 function cacheList(ctx as object) as dynamic
-    reply = cacheGet(ctx, "listItems", { method: "GET", path: "/api/v1/items" })
+    reply = cacheGet(ctx, "listItems", { method: "GET", path: "/api/v2/items" })
     r = apiResult(reply.code, reply.text)
     if not r.ok then return r.status
     ids = []
@@ -65,7 +65,7 @@ sub testAKeptAnswerIsReadAtOnceAndTheServersChangeIsKeptAndSignalledOnce()
     ctx = cacheFixture()
     assertEqual(cacheList(ctx), [20], "the server's, with nothing kept")
     assertTrue(not cacheRefresh(ctx), "nothing was read from what is kept")
-    cacheServes("/api/v1/items", cacheMovies(21))
+    cacheServes("/api/v2/items", cacheMovies(21))
     ctx = cacheFresh()
     assertEqual(cacheList(ctx), [20], "the kept answer, before the server is asked")
     assertEqual(cacheTimesAsked(), 1)
@@ -76,12 +76,12 @@ end sub
 
 sub testAnswersRefreshedTogetherSignalOnce()
     ctx = cacheFixture()
-    cacheServes("/api/v1/profiles/1/watch-state", cacheMovies(5))
-    states = { method: "GET", path: "/api/v1/profiles/1/watch-state" }
+    cacheServes("/api/v2/profiles/1/watch-state", cacheMovies(5))
+    states = { method: "GET", path: "/api/v2/profiles/1/watch-state" }
     cacheList(ctx)
     cacheGet(ctx, "listWatchStates", states)
-    cacheServes("/api/v1/items", cacheMovies(21))
-    cacheServes("/api/v1/profiles/1/watch-state", cacheMovies(6))
+    cacheServes("/api/v2/items", cacheMovies(21))
+    cacheServes("/api/v2/profiles/1/watch-state", cacheMovies(6))
     ctx = cacheFresh()
     cacheList(ctx)
     cacheGet(ctx, "listWatchStates", states)
@@ -106,7 +106,7 @@ end sub
 sub testReadingAgainOnTheSignalTakesTheNewAnswerWithoutAskingAgain()
     ctx = cacheFixture()
     cacheList(ctx)
-    cacheServes("/api/v1/items", cacheMovies(21))
+    cacheServes("/api/v2/items", cacheMovies(21))
     ctx = cacheFresh()
     cacheList(ctx)
     cacheRefresh(ctx)
@@ -119,7 +119,7 @@ end sub
 sub testWithTheServerGoneAKeptAnswerIsReadAtOnceAndStays()
     ctx = cacheFixture()
     cacheList(ctx)
-    cacheServes("/api/v1/items", "", -28, "")
+    cacheServes("/api/v2/items", "", -28, "")
     ctx = cacheFresh()
     assertEqual(cacheList(ctx), [20])
     assertTrue(not cacheRefresh(ctx), "nothing changed")
@@ -130,7 +130,7 @@ end sub
 sub testAnErrorFromTheServerDropsTheKeptAnswerAndSignals()
     ctx = cacheFixture()
     cacheList(ctx)
-    GetGlobalAA().routes.Delete("/api/v1/items")
+    GetGlobalAA().routes.Delete("/api/v2/items")
     ctx = cacheFresh()
     assertEqual(cacheList(ctx), [20])
     assertTrue(cacheRefresh(ctx), "the drop signals")
@@ -142,7 +142,7 @@ end sub
 sub testAServerThatFailsLeavesTheKeptAnswerAsOneThatIsGoneDoes()
     ctx = cacheFixture()
     cacheList(ctx)
-    cacheServes("/api/v1/items", "{""code"": ""unavailable"", ""message"": ""no""}", 503)
+    cacheServes("/api/v2/items", "{""code"": ""unavailable"", ""message"": ""no""}", 503)
     ctx = cacheFresh()
     assertEqual(cacheList(ctx), [20])
     assertTrue(not cacheRefresh(ctx), "a failing server changes nothing")
@@ -154,13 +154,13 @@ end sub
 sub testAfterAWriteTheServerAnsweredTheNextReadAsksFirst()
     ctx = cacheFixture()
     cacheList(ctx)
-    cacheServes("/api/v1/items", cacheMovies(21))
+    cacheServes("/api/v2/items", cacheMovies(21))
     assertTrue(cacheMarks("putWatchState", 200), "a write the server answered")
     assertTrue(cacheMarks("putWatchState", 500), "with anything")
     ctx = cacheFresh(CreateObject("roDateTime").AsSeconds())
     assertEqual(cacheList(ctx), [21], "the server's answer, waited on")
     assertTrue(not cacheRefresh(ctx), "nothing asked behind it")
-    cacheServes("/api/v1/items", "", -28, "")
+    cacheServes("/api/v2/items", "", -28, "")
     ctx = cacheFresh(CreateObject("roDateTime").AsSeconds())
     assertEqual(cacheList(ctx), [21], "the kept one while the server is gone")
 end sub
@@ -176,15 +176,15 @@ end sub
 
 sub testOnlyTheServersSuccessfulJsonReadsAreKept()
     ctx = cacheFixture()
-    cacheServes("/api/v1/items", "{""code"": ""internal"", ""message"": ""no""}", 500)
+    cacheServes("/api/v2/items", "{""code"": ""internal"", ""message"": ""no""}", 500)
     assertEqual(cacheList(ctx), 500)
-    cacheServes("/api/v1/items", "<html>sign in</html>", 200, "text/html")
+    cacheServes("/api/v2/items", "<html>sign in</html>", 200, "text/html")
     cacheList(ctx)
-    cacheServes("/api/v1/items", cacheMovies(20))
+    cacheServes("/api/v2/items", cacheMovies(20))
     assertEqual(cacheList(ctx), [20])
     assertEqual(cacheTimesAsked(), 3, "an error and another's page are not kept")
 
-    paths = { getMe: "/api/v1/me", listEvents: "/api/v1/events", getWatchState: "/api/v1/profiles/1/watch-state/20", getPlaybackSession: "/api/v1/playback/sessions/7", listStations: "/api/v1/stations", getHealth: "/api/v1/health" }
+    paths = { getMe: "/api/v2/me", listEvents: "/api/v2/events", getWatchState: "/api/v2/profiles/1/watch-state/20", getPlaybackSession: "/api/v2/playback/sessions/7", listStations: "/api/v2/stations", getHealth: "/api/v2/health" }
     for each op in paths
         cacheServes(paths[op], "{}")
         cacheGet(ctx, op, { method: "GET", path: paths[op] })
@@ -198,11 +198,11 @@ sub testAProfileIsOnlyEverAnsweredWithItsOwnKeptAnswers()
     cacheList(ctx)
     g = GetGlobalAA()
     g.slot = "2 http://tv.local:8477"
-    cacheServes("/api/v1/items", "", -28, "")
+    cacheServes("/api/v2/items", "", -28, "")
     assertEqual(cacheList(cacheFresh()), -28, "the kid is not answered with the adult's")
-    cacheServes("/api/v1/items", cacheMovies(30))
+    cacheServes("/api/v2/items", cacheMovies(30))
     cacheList(cacheFresh())
-    cacheServes("/api/v1/items", "", -28, "")
+    cacheServes("/api/v2/items", "", -28, "")
     assertEqual(cacheList(cacheFresh()), [30], "the kid's own last answer")
 
     g.slot = ""
@@ -222,7 +222,7 @@ sub testClearingKeepsNothingAndLeavesOtherFiles()
     WriteAsciiFile("tmp:/rabbit-ears-812.bif", "x")
     cacheClear("tmp:/")
     assertEqual(ListDir("tmp:/").Count(), 1)
-    cacheServes("/api/v1/items", "", -28, "")
+    cacheServes("/api/v2/items", "", -28, "")
     assertEqual(cacheList(cacheFresh()), -28, "nothing kept")
 end sub
 
@@ -230,8 +230,8 @@ sub testKeysThatShareAFileNameAreNotTakenForEachOther()
     assertTrue(cacheName("1 a/items?q=x") <> cacheName("1 a/items?q=y"))
     ctx = cacheFixture()
     cacheList(ctx)
-    name = cacheName("1 http://tv.local:8477/api/v1/items")
-    WriteAsciiFile("tmp:/" + name, "1 0 1 http://tv.local:8477/api/v1/other" + Chr(10) + cacheMovies(99))
+    name = cacheName("1 http://tv.local:8477/api/v2/items")
+    WriteAsciiFile("tmp:/" + name, "1 0 1 http://tv.local:8477/api/v2/other" + Chr(10) + cacheMovies(99))
     assertEqual(cacheList(cacheFresh()), [20], "another key's answer is not read")
     assertEqual(cacheTimesAsked(), 2)
 end sub

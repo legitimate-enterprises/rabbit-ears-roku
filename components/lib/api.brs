@@ -152,7 +152,7 @@ function apiRequest(name as string, params = {} as object, query = {} as object,
     if pairs.Count() > 0 then path = path + "?" + pairs.Join("&")
     text = ""
     if body <> invalid then text = FormatJson(apiSpelled(body))
-    return { method: op[0], path: "/api/v1" + path, body: text }
+    return { method: op[0], path: "/api/v2" + path, body: text }
 end function
 
 ' Every camelCase name the spec gives a property or parameter, keyed in lower
@@ -196,10 +196,11 @@ function apiNames() as object
         "streamUrl", "subtitleAction", "subtitleFormats", "subtitleIsText", "subtitleTrackId"
         "taskId", "tasksPaused", "thisDevice", "tmdbConfigured", "tmdbId", "tmdbKey", "toName", "toProfileId", "trackId", "trackNumber"
         "transcodeCacheBytes", "transcodeCacheCapBytes", "transcodeReason", "tvCeiling", "uniqueItems"
-        "unwatchedCount", "upNext", "updatedAt", "usedAt", "videoAction", "videoCodecs", "videoCount"
+        "unwatchedCount", "upNext", "usedAt", "videoAction", "videoCodecs", "videoCount"
         "videoId", "videoToolbox", "watchFiles", "watchTogetherId"
         "anchorDate", "customOrder", "daysAfter", "daysBefore", "firstDate", "keywordIds", "lastDate"
-        "occasionId", "sampleRateHz"
+        "occasionId", "sampleRateHz", "actingProfileId", "apiMax", "apiMin", "apiVersion", "changedAt", "createdBy"
+        "fileModifiedAt", "modifiedBy", "ownPlaylistId", "schemaMax", "schemaMin"
     ]
     for each name in names
         m.apiNames[LCase(name)] = name

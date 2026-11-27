@@ -8,7 +8,7 @@ function ladder() as object
 end function
 
 sub testRungFromTheSegmentBitrate()
-    r = telemetryRung({ segBitrateBps: 4128000, segUrl: "/api/v1/streams/k/0/2/7.ts" }, ladder())
+    r = telemetryRung({ segBitrateBps: 4128000, segUrl: "/api/v2/streams/k/0/2/7.ts" }, ladder())
     assertEqual(r, { currentRung: 2, rungHeight: 720, rungBitrate: 4128000 })
 end sub
 

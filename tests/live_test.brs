@@ -48,7 +48,7 @@ end sub
 sub testAPollAlsoAsksForFinishedScansAndHouseholdChanges()
     assertEqual(liveQuery(""), { kinds: ["library", "household"] })
     assertEqual(liveQuery("3.2"), { kinds: ["library", "household"], after: "3.2" })
-    assertEqual(apiRequest("listEvents", {}, liveQuery("3.2")).path, "/api/v1/events?after=3.2&kinds=library&kinds=household")
+    assertEqual(apiRequest("listEvents", {}, liveQuery("3.2")).path, "/api/v2/events?after=3.2&kinds=library&kinds=household")
     assertTrue(liveMoves([{ kind: "library", libraryId: 2 }], 4), "a scan reloads the views")
 end sub
 

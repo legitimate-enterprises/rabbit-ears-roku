@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Rabbit Ears API
-  version: 0.19.2
+  version: 0.21.0
   description: |
     REST API of the Rabbit Ears media server. This document's version is the
     server's. A breaking change takes a new path; additive changes bump the
@@ -15,13 +15,20 @@ info:
     their adult's device token. Operations whose security lists the `admin`
     scope require the device's adult to be an admin. A device locked at
     Who's watching answers 403 `device_locked` to every operation not marked
-    `x-while-locked`.
+    `x-while-locked`. An operation marked `x-replayable` may also run later,
+    queued by a client while offline, through replaySyncActions.
 
     Every error response carries the Error schema. Lists are paged with
     `limit` and `offset`; a page carries `nextOffset` only when more follow.
     A request body over 1 MiB, or 16 MiB on an operation marked `x-upload`,
     answers 413 with code `payload_too_large`. A request body's member sent
     as null is taken as absent.
+
+    Every id is an Id: a UUIDv7 in canonical lowercase form. A malformed id
+    in a path, query or body answers 400. A create whose input has an
+    optional `id` takes the client's choice, so a client can refer to the
+    row before the server has answered; an id already in use answers 409.
+    Ids are opaque: their order is not creation order.
 
     Every response carries `Artwork-Generation`, the number clients pass as
     `v` when they ask for an image; see the `v` parameter of getItemArtwork.
@@ -31,7 +38,7 @@ info:
   contact:
     email: dev@legitimate.enterprises
 servers:
-  - url: /api/v1
+  - url: /api/v2
 security:
   - device: []
 
@@ -51,6 +58,7 @@ tags:
   - name: together
   - name: stations
   - name: events
+  - name: sync
   - name: downloads
   - name: admin
 
@@ -152,7 +160,7 @@ paths:
       summary: Sends the browser to the provider to sign in with the authorization code flow and PKCE.
       description: >-
         The redirect URI sent to the provider is this server's
-        `/api/v1/auth/sso/callback` at the host the request names, over https
+        `/api/v2/auth/sso/callback` at the host the request names, over https
         when the connection is TLS or a reverse proxy on this host sent
         `X-Forwarded-Proto: https`. The cookie binds the sign-in to this
         browser for 10 minutes. A provider that is unknown, disabled or does
@@ -830,6 +838,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
 
   /profiles/{profileId}:
     parameters:
@@ -945,12 +954,18 @@ paths:
       operationId: resendProfileJoinCode
       tags: [profiles]
       summary: The owner gives a pending adult a new 7-day code, revoking their unused ones.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JoinCodeResendInput" }
       responses:
         "201":
           description: The pending adult and the new code to hand them.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/HouseholdInvite" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -997,6 +1012,7 @@ paths:
         household. An active kid sets their own autoplay only. Another
         adult's profile, a kid's hideKidsContent, and anything else while
         a kid is active answer 403.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -1084,6 +1100,7 @@ paths:
     put:
       operationId: allowItem
       tags: [profiles]
+      x-replayable: true
       responses:
         "204": { description: Allowed; idempotent. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -1092,6 +1109,7 @@ paths:
     delete:
       operationId: disallowItem
       tags: [profiles]
+      x-replayable: true
       responses:
         "204": { description: Removed. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -1144,6 +1162,7 @@ paths:
       operationId: putWatchState
       tags: [profiles]
       summary: Mark watched or unwatched, or set a resume position.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -1161,8 +1180,52 @@ paths:
     delete:
       operationId: deleteWatchState
       tags: [profiles]
+      x-replayable: true
+      parameters:
+        - name: at
+          in: query
+          description: >-
+            When it was forgotten, as a device that was offline knows it; a
+            time ahead of the server's is taken as now. A state that changed
+            later stays, and the answer is still 204.
+          schema: { type: string, format: date-time }
       responses:
         "204": { description: Forgotten. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /profiles/{profileId}/watch-state/{itemId}/plays:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+      - $ref: "#/components/parameters/ItemId"
+    post:
+      operationId: recordPlay
+      tags: [profiles]
+      summary: Count one finished play the server did not see.
+      description: >-
+        For a play the server did not stream, such as of a downloaded file,
+        sent once per play when it ends. playCount goes up by one, and
+        lastPlayedAt becomes the latest play, in whatever order plays and
+        putWatchState arrive. Over a state that changed no later than at,
+        the item is watched and resumes from the start of the edition
+        played; a state that changed later stays. Playback the server
+        streams counts a play only when it marks the item watched, so a
+        client sends no putWatchState with watched true for a play it
+        records.
+      x-replayable: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PlayInput" }
+      responses:
+        "200":
+          description: The state with the play counted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WatchState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
@@ -1243,6 +1306,7 @@ paths:
         it the profile may see, a channel every video of it. Another kind
         answers 400 with the field itemIds; an item the profile may not see
         is not found. Nothing is marked unless every item may be.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -1265,6 +1329,7 @@ paths:
         `setYouTubeChannelForKids` does. Any adult; while a kid is active
         this answers 403. Any other kind of item is not found, and nothing
         is set unless every item may be.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -1287,10 +1352,12 @@ paths:
       summary: Add many to a playlist, appended in order.
       description: >-
         Each entry is checked as `addPlaylistEntry` checks it, and its
-        position is ignored; a title of several editions without an
+        position and rank are ignored: the entries take the ranks of
+        generateNKeysBetween after the last entry's; a title of several editions without an
         editionId takes its default edition. A station's own playlist is
         written through its owner's profile, as `addPlaylistEntry` writes
         it. Nothing is added unless every entry may be.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -1302,6 +1369,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "501": { $ref: "#/components/responses/NotImplemented" }
 
   /libraries:
@@ -1820,6 +1888,7 @@ paths:
       tags: [items]
       summary: Marks a movie or show as kids' content or not, whatever its rating.
       description: Any adult; while a kid is active this answers 403. Any other kind of item is not found.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -1841,6 +1910,7 @@ paths:
       tags: [items]
       summary: Clears the override, so the rating decides again.
       description: Any adult; while a kid is active this answers 403. Any other kind of item is not found.
+      x-replayable: true
       responses:
         "204": { description: Cleared; idempotent. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -3988,6 +4058,7 @@ paths:
       tags: [youtube]
       summary: Marks a channel as for kids or not.
       description: Any adult; while a kid is active this answers 403.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4081,6 +4152,7 @@ paths:
         Marks each video as `putWatchState` does. A channel the profile
         may not see is not found; while a kid is active, another
         profile answers 403.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4133,6 +4205,7 @@ paths:
       operationId: createPlaylist
       tags: [playlists]
       summary: Makes an empty playlist. A kid's profile, or any while a kid is active, answers 403.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4148,6 +4221,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "501": { $ref: "#/components/responses/NotImplemented" }
 
   /profiles/{profileId}/playlists/{playlistId}:
@@ -4172,6 +4246,7 @@ paths:
       operationId: replacePlaylist
       tags: [playlists]
       summary: Renames a playlist. Changing the kind of one that has entries answers 409; anyone but its owner answers 403.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4193,6 +4268,7 @@ paths:
       operationId: deletePlaylist
       tags: [playlists]
       summary: Deletes a playlist with its entries and shares, and the stations of those it was shared with that play it. One the owner's own station plays answers 409; delete the station, or give it another playlist, first. Anyone but its owner answers 403.
+      x-replayable: true
       responses:
         "204": { description: Deleted with its entries. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4241,6 +4317,7 @@ paths:
         editionId. An editionId of another item, or on a show, season,
         album, artist or collection, answers 400. The entry keeps its
         edition when the title gains another.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4256,6 +4333,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "501": { $ref: "#/components/responses/NotImplemented" }
 
   /profiles/{profileId}/playlists/{playlistId}/play-order:
@@ -4319,6 +4397,7 @@ paths:
       tags: [playlists]
       summary: Reorder. Moves the entry to position, shifting the others; absent position moves it to the end. Access as addPlaylistEntry.
       description: The body names the entry's own item or collection; any other answers 400.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4339,6 +4418,7 @@ paths:
       operationId: removePlaylistEntry
       tags: [playlists]
       summary: Access as addPlaylistEntry.
+      x-replayable: true
       responses:
         "204": { description: Removed; later entries move up. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4379,6 +4459,7 @@ paths:
         already shared with answers 409, as does a station's own
         playlist. A share with someone the owner no longer sees stays,
         and its access may still be changed or the share removed.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4420,6 +4501,7 @@ paths:
       operationId: replacePlaylistShare
       tags: [playlists]
       summary: Changes a share's access. Owner only; write for a kid answers 400.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4440,6 +4522,7 @@ paths:
       operationId: deletePlaylistShare
       tags: [playlists]
       summary: Stops sharing with that profile. Owner only. Their stations that play the playlist are deleted with the share, unless a household share still reaches them.
+      x-replayable: true
       responses:
         "204": { description: No longer shared. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4481,6 +4564,7 @@ paths:
         profile reached by several shares gets the strongest. Any other
         household answers 400; one it is already shared with answers
         409, as does a station's own playlist.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4522,6 +4606,7 @@ paths:
       operationId: replacePlaylistHouseholdShare
       tags: [playlists]
       summary: Changes a household share's access. Owner only; its kids still only read.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4542,6 +4627,7 @@ paths:
       operationId: deletePlaylistHouseholdShare
       tags: [playlists]
       summary: Stops sharing with that household. Owner only. The stations that play the playlist of those it no longer reaches any other way are deleted with the share.
+      x-replayable: true
       responses:
         "204": { description: No longer shared. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4746,6 +4832,7 @@ paths:
       operationId: createCollection
       tags: [collections]
       summary: Makes an empty custom collection in the device's household. Answers 403 while a kid is active.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4760,6 +4847,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "501": { $ref: "#/components/responses/NotImplemented" }
 
   /collections/{collectionId}:
@@ -4782,6 +4870,7 @@ paths:
       operationId: replaceCollection
       tags: [collections]
       summary: Renames a custom collection. A TMDB collection answers 403, as does any while a kid is active.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4802,6 +4891,7 @@ paths:
       operationId: deleteCollection
       tags: [collections]
       summary: Deletes a custom collection. A TMDB collection answers 403, as does any while a kid is active.
+      x-replayable: true
       responses:
         "204": { description: "Deleted, with every playlist entry that held it; later entries move up on the playlist's next write." }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4846,6 +4936,7 @@ paths:
         Anything but a movie answers 400; an item the profile may not see
         answers 404; a TMDB collection, or any while a kid is active,
         answers 403.
+      x-replayable: true
       responses:
         "204": { description: Added; idempotent. }
         "400": { $ref: "#/components/responses/BadRequest" }
@@ -4857,6 +4948,7 @@ paths:
       operationId: removeCollectionMovie
       tags: [collections]
       summary: Removes a movie from a custom collection; a movie not in it answers 404. Writes are refused as addCollectionMovie.
+      x-replayable: true
       responses:
         "204": { description: Removed. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -4879,6 +4971,7 @@ paths:
         holding it and a movie's related collections follow that order. A
         movie added later goes last. A movie not in the collection answers
         404.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -4903,6 +4996,7 @@ paths:
       operationId: resetCollectionOrder
       tags: [collections]
       summary: Returns the collection to release order, clearing every position. Writes are refused as addCollectionMovie.
+      x-replayable: true
       responses:
         "200":
           description: The collection, no longer hand-ordered; idempotent.
@@ -5188,6 +5282,7 @@ paths:
         them answers 400 on playlistId. While a kid is active this answers 403. The
         schedule is written through the end of the next day and the rating
         calculated before the answer, so onAir is already filled.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -5202,6 +5297,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
 
   /stations/{stationId}:
     parameters:
@@ -5234,6 +5330,7 @@ paths:
         visibility absent keeps the station's. On a server station a
         visibility answers 403: only an admin changes it, through
         setStationServerWide.
+      x-replayable: true
       requestBody:
         required: true
         content:
@@ -5249,10 +5346,12 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
     delete:
       operationId: deleteStation
       tags: [stations]
       summary: Deletes a station with its schedule, and the playlist it owns. Only its owner, active, deletes; any other profile that sees it gets 403.
+      x-replayable: true
       responses:
         "204": { description: Deleted. A session tuned in plays on to the end of its program. }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -5297,6 +5396,7 @@ paths:
       tags: [stations]
       summary: Reschedule now. What is on plays to its end; the schedule is rebuilt from there with the station as it is now, and the rating recalculated.
       description: Only the owner, active; any other profile that sees it gets 403.
+      x-replayable: true
       responses:
         "200":
           description: The station with its new onAir.
@@ -5483,6 +5583,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
 
   /admin/sso-providers/{providerId}:
     parameters:
@@ -5878,6 +5979,199 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /sync/changes:
+    get:
+      operationId: getSyncChanges
+      tags: [sync]
+      summary: What changed in this device's replica since a version.
+      description: |
+        A native client keeps a replica: a local SQLite database of what its
+        household may see, in a sync schema the server defines. It fills it
+        from getSyncSnapshot, then keeps it current from this operation, on
+        every start, return to the foreground, reconnection and ring of
+        waitSyncVersion.
+
+        Every change the server makes moves a version, one global counter.
+        A pass asks with `since`, the version the replica holds, and without
+        `cursor`. An answer with mode `diff` and a `cursor` has more to read:
+        the client asks again with the same `since` and `schema` and that
+        cursor, until an answer comes without one. Each row appears at most
+        once per pass, in its state at the time it was read; it replaces the
+        replica's row of the same key in that table. Each tombstone deletes
+        the replica's row of that key, if it holds one. The replica has no
+        foreign keys, so rows and tombstones apply in the order given or any
+        other.
+
+        `version` is the watermark: a client that applied every page of a
+        pass holds everything up to `version`, and asks from it next time.
+        A page with a `cursor` reports `since` as its `version`, so a client
+        that stops mid-pass keeps its `since` and loses nothing by starting
+        the pass again.
+
+        Mode `snapshot` carries no rows: the client replaces its replica with
+        getSyncSnapshot, then catches up from that snapshot's version. It is
+        the answer, on any page, when `since` is absent; when `since` is older
+        than the deletions the server keeps (90 days) or newer than the
+        server's version, as after a restore; when a change after
+        `since` altered which rows the household's replica holds, such as a
+        membership, adult link, share, profile offer, a station made,
+        deleted or changing visibility, owner or playlist, or a device moving
+        household, or when the server was upgraded; and, on a
+        first page, when more rows changed since `since` than half the
+        replica holds.
+
+        Mode `unsupported` carries no rows: `schema` is outside
+        `ranges.schemaMin` to `ranges.schemaMax`. A client below schemaMin
+        updates before it syncs again; one above schemaMax waits for the
+        server to be upgraded.
+      parameters:
+        - name: schema
+          in: query
+          required: true
+          description: The sync schema the client's replica uses.
+          schema: { type: integer, minimum: 1 }
+        - name: since
+          in: query
+          description: The `version` the replica holds; absent for none.
+          schema: { type: integer, format: int64, minimum: 0 }
+        - name: cursor
+          in: query
+          description: The `cursor` of the previous page of this pass; opaque.
+          schema: { type: string, maxLength: 128 }
+        - name: limit
+          in: query
+          description: At most this many rows and tombstones on the page.
+          schema: { type: integer, minimum: 1, maximum: 5000, default: 1000 }
+      responses:
+        "200":
+          description: A page of changes, or the mode the client must take instead.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncChanges" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sync/snapshot:
+    get:
+      operationId: getSyncSnapshot
+      tags: [sync]
+      summary: This device's whole replica as a SQLite database.
+      description: |
+        The replica of the device's household in sync schema `schema`, as
+        one SQLite database: the schema's tables holding every row the
+        household may see, its views, among them those that apply each
+        profile's kid filter such as profile_item and profile_station, and
+        its indexes. Every id column, `household_id` included, holds the
+        id's 16 bytes as a BLOB; getSyncChanges sends the same ids as
+        canonical UUID strings, which the client writes back as those bytes.
+        Its one-row table replica_meta holds `schema`, `version`, the
+        version the snapshot was taken at, and `household_id`. The client replaces
+        its replica with the file whole, then asks getSyncChanges with
+        `since` set to replica_meta's `version`. A `schema` outside
+        SyncRanges' schemaMin to schemaMax answers 400.
+      parameters:
+        - name: schema
+          in: query
+          required: true
+          description: The sync schema the client's replica uses.
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: The replica.
+          content:
+            application/vnd.sqlite3:
+              schema: { type: string, format: binary }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sync/version:
+    get:
+      operationId: waitSyncVersion
+      tags: [sync]
+      summary: Wait until this device's replica has changes to read.
+      description: >-
+        A long poll, held as listEvents is, at most 25 seconds. It answers
+        `changed` true as soon as getSyncChanges since `after` would answer
+        a row, a tombstone or mode `snapshot`, else false when the time is
+        up; it carries no data. A client asks with the version its replica
+        holds while it is in the foreground, runs getSyncChanges on true,
+        and asks again at once on false. A write elsewhere that the
+        household cannot see does not ring, except a deletion from a table
+        keyed by a single id, which reaches every household as a tombstone.
+      parameters:
+        - name: after
+          in: query
+          required: true
+          description: The `version` the replica holds.
+          schema: { type: integer, format: int64, minimum: 0 }
+      responses:
+        "200":
+          description: Whether there are changes to read.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncBell" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sync/actions:
+    post:
+      operationId: replaySyncActions
+      tags: [sync]
+      summary: Replay writes a client queued, in order.
+      description: |
+        A client writes to its replica at once and queues each write as an
+        action naming an operation marked `x-replayable`, to send when it is
+        online. The server runs the actions in `seq` order, each as the
+        request it names would run, with the same validation, permissions
+        and rules, as `actingProfileId`, which must be a profile of the
+        device's household that is not revoked, with that profile's
+        permissions at the time of the replay. A profile's PIN is not asked,
+        and a device locked at Who's watching replays too and stays locked.
+
+        Each action the server answers gets one result: `accepted` when the
+        operation succeeded, `rejected` with the operation's Error `code`
+        when it answered 4xx. An operation not marked `x-replayable`, or a
+        `path` and `method` that are not `operationId`'s, is rejected with
+        `not_replayable`; an `actingProfileId` outside the household, or
+        revoked, with `not_found`. When an operation fails on the server, a 5xx, the
+        batch stops there: that action and every later one are absent from
+        `results`, and the client sends them again later. The client
+        removes from its queue only the actions answered.
+
+        The server remembers each answered action's `id` for 90 days per
+        device: an action sent again answers its stored result without
+        running again. A batch whose `apiVersion` is outside SyncRanges'
+        apiMin to apiMax rejects every action with `unsupported_version`,
+        runs and remembers none.
+
+        After each answered action, accepted or rejected, the server marks
+        every row in its `touched` as changed, or a deletion when the row
+        no longer exists, so the next getSyncChanges brings the replica's
+        copy of each to what the server holds; a row that exists but the
+        household may not see is left alone. A client keeps no rollback of
+        its own.
+
+        A batch that fails validation, names in `touched` a table that is
+        not one of the sync schema's, a key of the wrong length or a key
+        part of the wrong type (an integer for an integer column, a
+        canonical UUID string for an id column, a string for a text one), or
+        whose `seq` does not strictly increase, answers 400 and runs nothing.
+      x-while-locked: true
+      x-upload: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncActionBatch" }
+      responses:
+        "200":
+          description: A result for each action answered, in the batch's order.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncActionResults" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
 components:
   securitySchemes:
     device:
@@ -6089,8 +6383,8 @@ components:
     ImageVersion:
       name: v
       in: query
-      description: Read by nothing; imageUrl carries it so that a new image has a new address.
-      schema: { type: integer, format: int64 }
+      description: Read by nothing; imageUrl carries it, the image's id, so that a new image has a new address.
+      schema: { type: string, maxLength: 64 }
     SsoProviderId:
       name: providerId
       in: path
@@ -6178,9 +6472,12 @@ components:
 
   schemas:
     Id:
-      type: integer
-      format: int64
-      minimum: 1
+      type: string
+      format: uuid
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      x-go-type: uid.ID
+      x-go-type-import:
+        path: github.com/legitimate-enterprises/rabbit-ears/server/internal/uid
 
     Error:
       type: object
@@ -6412,7 +6709,7 @@ components:
 
     Account:
       type: object
-      required: [id, kind, name, isAdmin, hasPin, pinLocked, pending, filterMode, createdAt, updatedAt]
+      required: [id, kind, name, isAdmin, hasPin, pinLocked, pending, filterMode, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         kind: { $ref: "#/components/schemas/AccountKind" }
@@ -6485,7 +6782,9 @@ components:
             for a new profile. Set with setProfilePreferences.
         revokedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     ProfileColor:
       type: string
@@ -6512,6 +6811,12 @@ components:
       description: Households are set by joining and by profiles, never here.
       required: [kind, name]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createAccount: the new account's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceAccount,
+            an id other than the path's answers 400.
         kind: { $ref: "#/components/schemas/AccountKind" }
         email: { type: string, format: email, description: Required for adults. }
         name: { type: string, minLength: 1, maxLength: 100 }
@@ -6534,6 +6839,12 @@ components:
       type: object
       required: [name, birthday]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createProfile: the new kid's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceProfile,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         birthday: { type: string, format: date }
         filterMode: { $ref: "#/components/schemas/FilterMode", description: Absent keeps the stored mode; ratings for a new kid. }
@@ -6573,17 +6884,26 @@ components:
 
     Household:
       type: object
-      required: [id, name, adultId, createdAt]
+      required: [id, name, adultId, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
         adultId: { $ref: "#/components/schemas/Id", description: The owner. }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     HouseholdInput:
       type: object
       required: [name, adultId]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createHousehold: the new household's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceHousehold,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         adultId: { $ref: "#/components/schemas/Id" }
 
@@ -6592,7 +6912,7 @@ components:
       description: >-
         An adult's offer of a profile of their household to an adult linked
         with them. It names what neither side may otherwise read.
-      required: [id, profileId, profileName, profileKind, householdId, householdName, fromProfileId, fromName, toProfileId, toName, createdAt]
+      required: [id, profileId, profileName, profileKind, householdId, householdName, fromProfileId, fromName, toProfileId, toName, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         profileId: { $ref: "#/components/schemas/Id" }
@@ -6605,11 +6925,19 @@ components:
         toProfileId: { $ref: "#/components/schemas/Id", description: The adult offered to. }
         toName: { type: string }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     ProfileOfferInput:
       type: object
       required: [profileId, toProfileId]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createProfileOffer: the new offer's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
         profileId: { $ref: "#/components/schemas/Id" }
         toProfileId: { $ref: "#/components/schemas/Id", description: A linked adult. }
 
@@ -6670,7 +6998,7 @@ components:
 
     Device:
       type: object
-      required: [id, name, platform, accountId, householdId, createdAt]
+      required: [id, name, platform, accountId, householdId, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
@@ -6680,6 +7008,7 @@ components:
         lastSeenAt: { type: string, format: date-time }
         revokedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
 
     DeviceInput:
       type: object
@@ -6699,7 +7028,7 @@ components:
 
     JoinCode:
       type: object
-      required: [id, code, link, accountId, expiresAt, createdAt]
+      required: [id, code, link, accountId, expiresAt, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         code: { type: string, examples: ["7KQ4-MNP2"] }
@@ -6709,6 +7038,9 @@ components:
         usedAt: { type: string, format: date-time }
         revokedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     DeviceLinkStatus:
       type: string
@@ -6775,16 +7107,17 @@ components:
 
     DeviceLinkPreview:
       type: object
-      required: [deviceName, platform, createdAt, expiresAt]
+      required: [deviceName, platform, createdAt, expiresAt, modifiedAt]
       properties:
         deviceName: { type: string }
         platform: { $ref: "#/components/schemas/Platform" }
         createdAt: { type: string, format: date-time, description: When the device asked. }
+        modifiedAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time }
 
     DeviceLink:
       type: object
-      required: [id, code, deviceName, platform, status, expiresAt, createdAt]
+      required: [id, code, deviceName, platform, status, expiresAt, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         code: { type: string }
@@ -6797,6 +7130,7 @@ components:
         decidedAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
 
     DeviceLinkPage:
       type: object
@@ -6811,6 +7145,16 @@ components:
       type: object
       required: [name, email]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new adult's account id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
+        joinCodeId:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new join code's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
         name: { type: string, minLength: 1, maxLength: 100 }
         email: { type: string, format: email }
         expiresInDays: { type: integer, enum: [1, 7, 30], default: 7 }
@@ -6826,6 +7170,11 @@ components:
       type: object
       required: [email]
       properties:
+        joinCodeId:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new join code's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
         email: { type: string, format: email }
         expiresInDays: { type: integer, enum: [1, 7, 30], default: 7 }
 
@@ -6833,8 +7182,22 @@ components:
       type: object
       required: [accountId]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createJoinCode: the new join code's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
         accountId: { $ref: "#/components/schemas/Id" }
         expiresInDays: { type: integer, enum: [1, 7, 30], default: 7 }
+
+    JoinCodeResendInput:
+      type: object
+      properties:
+        joinCodeId:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new join code's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
 
     JoinCodePage:
       type: object
@@ -6851,7 +7214,7 @@ components:
 
     Library:
       type: object
-      required: [id, name, kind, scanHour, watchFiles, folders, stats, createdAt, updatedAt]
+      required: [id, name, kind, scanHour, watchFiles, folders, stats, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
@@ -6865,7 +7228,9 @@ components:
         stats: { $ref: "#/components/schemas/LibraryStats" }
         lastScannedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     LibraryStats:
       type: object
@@ -6889,6 +7254,12 @@ components:
       type: object
       required: [name, kind]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createLibrary: the new library's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceLibrary,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         kind: { $ref: "#/components/schemas/LibraryKind" }
         scanHour: { type: integer, minimum: 0, maximum: 23, default: 3 }
@@ -6905,11 +7276,15 @@ components:
 
     Folder:
       type: object
-      required: [id, libraryId, path]
+      required: [id, libraryId, path, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         libraryId: { $ref: "#/components/schemas/Id" }
         path: { type: string }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     FolderPage:
       type: object
@@ -6923,6 +7298,12 @@ components:
       type: object
       required: [path]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On addLibraryFolder: the new folder's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceLibraryFolder,
+            an id other than the path's answers 400.
         path: { type: string, minLength: 2, pattern: "^/" }
 
     ItemKind:
@@ -6943,7 +7324,7 @@ components:
 
     Item:
       type: object
-      required: [id, libraryId, kind, parsedTitle, addedAt, updatedAt]
+      required: [id, libraryId, kind, parsedTitle, addedAt, modifiedAt, createdAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         libraryId: { $ref: "#/components/schemas/Id" }
@@ -6972,7 +7353,8 @@ components:
             files, the default first, then by name. An episode has one.
           items: { $ref: "#/components/schemas/Edition" }
         addedAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
         unavailable:
           type: boolean
           description: >-
@@ -7146,7 +7528,7 @@ components:
         A seasonal label, anchored to a holiday or to a month and day, in
         season from daysBefore days before its anchor through daysAfter days
         after it.
-      required: [id, name, daysBefore, daysAfter, keywordIds, phrases]
+      required: [id, name, daysBefore, daysAfter, keywordIds, phrases, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
@@ -7164,6 +7546,10 @@ components:
           description: Phrases to title the occasion's Home row in place of its name, in the order given; ActiveOccasion.headline is one of them.
           items: { type: string }
         colors: { type: array, maxItems: 3, items: { type: string, pattern: "^#[0-9A-Fa-f]{6}$" }, description: "Three colors, as #RRGGBB, for the wash behind the occasion's screen; absent or empty keeps the plain background." }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     OccasionInput:
       type: object
@@ -7178,6 +7564,12 @@ components:
         and an empty array clears them.
       required: [name, daysBefore, daysAfter, keywordIds]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createOccasion: the new occasion's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceOccasion,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         holiday: { type: string, minLength: 1, maxLength: 50, description: A key of listHolidays. }
         month: { type: integer, minimum: 1, maximum: 12 }
@@ -7341,17 +7733,18 @@ components:
 
     MediaFile:
       type: object
-      required: [id, itemId, path, sizeBytes, modifiedAt, tracks, chapters]
+      required: [id, path, sizeBytes, fileModifiedAt, tracks, chapters, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         itemId:
           $ref: "#/components/schemas/Id"
           description: >-
             The first item it belongs to; a file holding several episodes
-            belongs to each. listMediaFiles lists it under every one.
+            belongs to each. listMediaFiles lists it under every one. Absent
+            for a file of no item.
         path: { type: string, description: The base name unless the caller is an admin. }
         sizeBytes: { type: integer, format: int64 }
-        modifiedAt: { type: string, format: date-time }
+        fileModifiedAt: { type: string, format: date-time, description: The file's modification time on disk. }
         container: { type: string }
         durationMs: { type: integer, format: int64 }
         bitrate: { type: integer, format: int64, description: Bits per second. }
@@ -7383,17 +7776,19 @@ components:
           $ref: "#/components/schemas/Id"
           description: On listMediaFiles by problem only, the library of the first item it belongs to.
         title: { type: string, description: "On listMediaFiles by problem only, the shown title of the first item it belongs to." }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
 
     MediaFileInput:
       type: object
-      required: [itemId, path, sizeBytes, modifiedAt]
+      required: [itemId, path, sizeBytes, fileModifiedAt]
       properties:
         itemId:
           $ref: "#/components/schemas/Id"
           description: The file joins this item's first untagged edition and leaves any other item's.
         path: { type: string, pattern: "^/" }
         sizeBytes: { type: integer, format: int64, minimum: 0 }
-        modifiedAt: { type: string, format: date-time }
+        fileModifiedAt: { type: string, format: date-time, description: The file's modification time on disk. }
         container: { type: string }
         durationMs: { type: integer, format: int64, minimum: 0 }
         bitrate: { type: integer, format: int64, minimum: 0 }
@@ -7423,7 +7818,7 @@ components:
     SeekPreview:
       type: object
       description: The seek preview frames the Seek previews task made for one media file.
-      required: [id, mediaFileId, intervalMs, count, width, height, createdAt]
+      required: [id, mediaFileId, intervalMs, count, width, height, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         mediaFileId: { $ref: "#/components/schemas/Id" }
@@ -7432,6 +7827,7 @@ components:
         width: { type: integer }
         height: { type: integer }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
 
     SeekPreviewPage:
       type: object
@@ -7562,7 +7958,7 @@ components:
 
     WatchState:
       type: object
-      required: [itemId, positionMs, watched, playCount, updatedAt]
+      required: [itemId, positionMs, watched, playCount, changedAt]
       properties:
         itemId: { $ref: "#/components/schemas/Id" }
         positionMs: { type: integer, format: int64 }
@@ -7575,7 +7971,7 @@ components:
         watched: { type: boolean, description: "Per title, whichever edition was played." }
         playCount: { type: integer }
         lastPlayedAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        changedAt: { type: string, format: date-time, description: "The instant of the write that set it, as the client gave it; the latest wins." }
 
     WatchStateInput:
       type: object
@@ -7595,6 +7991,18 @@ components:
             now. The change applies only over a state that changed no later,
             and is lastPlayedAt; otherwise the stored state stays and is the
             answer.
+
+    PlayInput:
+      type: object
+      required: [at]
+      properties:
+        at:
+          type: string
+          format: date-time
+          description: When the play ended; a time ahead of the server's is taken as now.
+        editionId:
+          $ref: "#/components/schemas/Id"
+          description: The edition, of this item, that played; absent is the default edition.
 
     WatchStatePage:
       type: object
@@ -7656,7 +8064,7 @@ components:
 
     Task:
       type: object
-      required: [id, name, kind, enabled, createdAt]
+      required: [id, name, kind, enabled, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
@@ -7667,6 +8075,7 @@ components:
         runRequestedAt: { type: string, format: date-time, description: Set while a Run now waits to start. Read-only. }
         lastRun: { $ref: "#/components/schemas/TaskRun" }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
 
     TaskInput:
       type: object
@@ -7738,7 +8147,7 @@ components:
 
     Session:
       type: object
-      required: [id, deviceId, accountId, itemId, mediaFileId, positionMs, currentEntry, plan, encoder, startedAt, updatedAt]
+      required: [id, deviceId, accountId, itemId, mediaFileId, positionMs, currentEntry, plan, encoder, startedAt, modifiedAt, createdAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         deviceId: { $ref: "#/components/schemas/Id" }
@@ -7758,7 +8167,8 @@ components:
           type: string
           description: Why the entry in use is not direct play. Known only for sessions this server process started.
         startedAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
         endedAt: { type: string, format: date-time }
 
     Settings:
@@ -8219,7 +8629,7 @@ components:
         height: { type: integer, minimum: 1 }
         frameUrl:
           type: string
-          examples: ["/api/v1/streams/k/0/previews/{n}.jpg"]
+          examples: ["/api/v2/streams/k/0/previews/{n}.jpg"]
           description: Server-relative URL of one frame with `{n}` standing for its index from 0. It carries its own authorization like streamUrl.
         bifUrl: { type: string, description: "Server-relative URL of every frame as one Roku BIF file, authorized the same way." }
 
@@ -8564,6 +8974,10 @@ components:
       required: [watched]
       properties:
         watched: { type: boolean }
+        at:
+          type: string
+          format: date-time
+          description: As WatchStateInput.at, for each video.
 
     # Playlists.
     PlaylistKind:
@@ -8573,7 +8987,7 @@ components:
 
     Playlist:
       type: object
-      required: [id, profileId, name, kind, access, itemCount, durationMs, createdAt, updatedAt]
+      required: [id, profileId, name, kind, access, itemCount, durationMs, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         profileId: { $ref: "#/components/schemas/Id", description: The owner's profile. }
@@ -8595,7 +9009,9 @@ components:
             getPlaylistImage would not find it; the client then shows
             artItemId's poster.
         createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     CustomImageInput:
       type: object
@@ -8726,6 +9142,12 @@ components:
       type: object
       required: [name, kind]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createPlaylist: the new playlist's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replacePlaylist,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         kind: { $ref: "#/components/schemas/PlaylistKind" }
 
@@ -8756,11 +9178,12 @@ components:
         /items/{itemId}/artwork/poster, a song's
         /items/{song.albumId}/artwork/poster, a collection's
         /collections/{collectionId}/artwork/poster.
-      required: [id, playlistId, position, kind, itemCount, durationMs, addedAt]
+      required: [id, playlistId, position, kind, itemCount, durationMs, addedAt, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         playlistId: { $ref: "#/components/schemas/Id" }
         position: { type: integer, minimum: 0, description: Order from 0 at the top. }
+        rank: { type: string, description: "What orders the playlist's entries, compared bytewise, ties by id: a key of rocicorp/fractional-indexing with its default alphabet. Always sent; optional so a copy a client stored before the field existed still reads." }
         itemId: { $ref: "#/components/schemas/Id", description: Absent for a collection. }
         collectionId: { $ref: "#/components/schemas/Id", description: Present for a collection only. }
         kind: { $ref: "#/components/schemas/PlaylistEntryKind" }
@@ -8775,6 +9198,10 @@ components:
         song: { $ref: "#/components/schemas/MusicSong" }
         collection: { $ref: "#/components/schemas/Collection" }
         addedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     PlaylistEntryInput:
       type: object
@@ -8783,9 +9210,31 @@ components:
         On replacePlaylistEntry an editionId other than the entry's answers
         400 and an absent one keeps it.
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On addPlaylistEntry and addPlaylistEntries: the new entry's id, a
+            UUIDv7 the client chose; absent, the server chooses one. An id
+            already in use, or given twice in one batch, answers 409. On
+            replacePlaylistEntry, an id other than the path's answers 400.
         itemId: { $ref: "#/components/schemas/Id" }
         collectionId: { $ref: "#/components/schemas/Id" }
-        position: { type: integer, minimum: 0, description: "Where it goes, from 0; past the end or absent puts it last." }
+        position:
+          type: integer
+          minimum: 0
+          description: >-
+            Where it goes, from 0; past the end or absent puts it last. It
+            takes a rank between its new neighbours', so a late replay can
+            land elsewhere; between two of equal rank it goes after both.
+        rank:
+          type: string
+          pattern: "^[A-Za-z][0-9A-Za-z]*$"
+          maxLength: 255
+          description: >-
+            Where it goes, as PlaylistEntry.rank orders it: a key that
+            generateKeyBetween of rocicorp/fractional-indexing makes with its
+            default alphabet from the neighbours' ranks. Taken as given; not
+            with position. A string that is not such a key answers 400.
         editionId:
           $ref: "#/components/schemas/Id"
           description: An edition of itemId; required when that movie, episode or song has more than one.
@@ -8836,7 +9285,7 @@ components:
 
     Collection:
       type: object
-      required: [id, source, name, movieCount, createdAt, updatedAt]
+      required: [id, source, name, movieCount, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         source: { $ref: "#/components/schemas/CollectionSource" }
@@ -8847,7 +9296,9 @@ components:
         movieCount: { type: integer, minimum: 0, description: Its movies the active profile may see. }
         customOrder: { type: boolean, description: "True while a custom collection's movies are in a hand order, set by replaceCollectionMoviePosition; false for release order, and always for TMDB. Always sent; optional so a copy a client stored before the field existed still reads." }
         createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     CollectionMoviePositionInput:
       type: object
@@ -8858,6 +9309,12 @@ components:
       type: object
       required: [name]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createCollection: the new collection's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceCollection,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
 
     CollectionPage:
@@ -9035,6 +9492,13 @@ components:
         it starts on.
       required: [from, to]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            Always sent. On createStation and replaceStation: the range's id, a
+            UUIDv7 the client chose; absent, the server chooses one. A range
+            replaceStation is given keeps its id when it sends it again; an id
+            in use by another station's range, or given twice, answers 409.
         from: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
         to: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
 
@@ -9053,7 +9517,7 @@ components:
         client offers Edit station, Reschedule now and Delete only when
         ownerId is the active profile, and shows visibility server as a
         read-only Server.
-      required: [id, name, kind, ownerId, householdId, playlistId, order, visibility, timing, days, times, onAir, createdAt, updatedAt]
+      required: [id, name, kind, ownerId, householdId, playlistId, order, visibility, timing, days, times, onAir, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
@@ -9095,12 +9559,27 @@ components:
             whenever the image does. Absent while none is set, and while
             getStationImage would not find it.
         createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     StationInput:
       type: object
       required: [name]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createStation only: the new station's id, a UUIDv7 the client
+            chose; absent, the server chooses one. An id already in use answers
+            409. On replaceStation, an id other than the path's answers 400.
+        ownPlaylistId:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createStation without playlistId only: the id of the playlist
+            the station owns, a UUIDv7 the client chose; absent, the server
+            chooses one. An id already in use answers 409; with playlistId, or
+            on replaceStation, it answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         playlistId:
           $ref: "#/components/schemas/Id"
@@ -9258,7 +9737,7 @@ components:
 
     SsoProvider:
       type: object
-      required: [id, name, issuer, clientId, clientSecretSet, linksByEmail, enabled, createdAt, updatedAt]
+      required: [id, name, issuer, clientId, clientSecretSet, linksByEmail, enabled, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         name: { type: string }
@@ -9274,12 +9753,20 @@ components:
             email_verified claim is true.
         enabled: { type: boolean }
         createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
 
     SsoProviderInput:
       type: object
       required: [name, issuer, clientId]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            On createSsoProvider: the new provider's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409. On replaceSsoProvider,
+            an id other than the path's answers 400.
         name: { type: string, minLength: 1, maxLength: 100 }
         issuer: { type: string, minLength: 1, maxLength: 2048 }
         clientId: { type: string, minLength: 1, maxLength: 512 }
@@ -9304,7 +9791,7 @@ components:
 
     AccountIdentity:
       type: object
-      required: [id, accountId, providerId, subject, createdAt]
+      required: [id, accountId, providerId, subject, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         accountId: { $ref: "#/components/schemas/Id" }
@@ -9312,6 +9799,7 @@ components:
         subject: { type: string, description: The provider's ID for the user. }
         email: { type: string, description: As the provider gave it when the identity was linked. }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
 
     AccountIdentityPage:
       type: object
@@ -9374,10 +9862,165 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Event" }
 
+    SyncRanges:
+      type: object
+      description: What this server syncs with.
+      required: [apiMin, apiMax, schemaMin, schemaMax]
+      properties:
+        apiMin: { type: string, description: "The oldest API version, as info.version, whose action batches the server replays." }
+        apiMax: { type: string, description: "The newest such version, the server's own." }
+        schemaMin: { type: integer, minimum: 1, description: The oldest sync schema the server serves. }
+        schemaMax: { type: integer, minimum: 1, description: The newest sync schema the server serves. }
+
+    SyncScalar:
+      description: >-
+        A column value as SQLite holds it: a JSON integer, number, string or
+        null, never a boolean, array or object; true and false are 1 and 0.
+        A key part is never null. A BLOB column (an id) is its canonical
+        lowercase UUID string.
+      x-go-type: any
+
+    SyncTable:
+      type: object
+      description: Rows of one table of the sync schema, each a value per column.
+      required: [name, columns, rows]
+      properties:
+        name: { type: string }
+        columns:
+          type: array
+          items: { type: string }
+        rows:
+          type: array
+          items:
+            type: array
+            x-go-type: "[]any"
+            items: { $ref: "#/components/schemas/SyncScalar" }
+
+    SyncTombstones:
+      type: object
+      description: Rows deleted from one table of the sync schema, each by its primary key, its columns in the table's key order.
+      required: [table, keys]
+      properties:
+        table: { type: string }
+        keys:
+          type: array
+          items:
+            type: array
+            x-go-type: "[]any"
+            minItems: 1
+            maxItems: 3
+            items: { $ref: "#/components/schemas/SyncScalar" }
+
+    SyncChanges:
+      type: object
+      description: One page of a pass of getSyncChanges, or the mode to take instead.
+      required: [mode, ranges]
+      properties:
+        mode: { type: string, enum: [diff, snapshot, unsupported] }
+        ranges: { $ref: "#/components/schemas/SyncRanges" }
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: With diff, the watermark; see getSyncChanges. Absent otherwise.
+        cursor:
+          type: string
+          description: With diff, present while the pass has more pages; pass it back as `cursor`.
+        tables:
+          type: array
+          description: With diff, the rows that changed, by table.
+          items: { $ref: "#/components/schemas/SyncTable" }
+        tombstones:
+          type: array
+          description: With diff, the rows deleted, by table.
+          items: { $ref: "#/components/schemas/SyncTombstones" }
+
+    SyncBell:
+      type: object
+      required: [changed, ranges]
+      properties:
+        changed: { type: boolean, description: True when getSyncChanges since `after` has something to answer. }
+        ranges: { $ref: "#/components/schemas/SyncRanges" }
+
+    SyncActionBatch:
+      type: object
+      required: [apiVersion, actions]
+      properties:
+        apiVersion: { type: string, maxLength: 64, description: "The API version, as info.version, of the spec the client was built from." }
+        actions:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/SyncAction" }
+
+    SyncTouched:
+      type: object
+      description: >-
+        A row of the sync schema an action may change, by its primary key,
+        its columns in the table's key order: a JSON integer for an
+        INTEGER key column, a canonical lowercase UUID string for an id
+        (BLOB) one, a string for a TEXT one.
+      required: [table, key]
+      properties:
+        table: { type: string, maxLength: 64 }
+        key:
+          type: array
+          x-go-type: "[]any"
+          minItems: 1
+          maxItems: 3
+          items: { $ref: "#/components/schemas/SyncScalar" }
+
+    SyncAction:
+      type: object
+      description: One queued write, the request it replays and the replica rows it wrote.
+      required: [id, seq, operationId, method, path, actingProfileId, at, touched]
+      properties:
+        id: { type: string, format: uuid, description: "Chosen by the client, once per action." }
+        seq: { type: integer, format: int64, minimum: 0, description: Its place in the client's queue. }
+        operationId: { type: string, maxLength: 64 }
+        method: { type: string, enum: [PUT, POST, DELETE] }
+        path: { type: string, pattern: "^/", maxLength: 2048, description: "Relative to /api/v2, path parameters filled in and query included." }
+        body: { description: "The request body; absent for none." }
+        actingProfileId: { $ref: "#/components/schemas/Id" }
+        at:
+          type: string
+          format: date-time
+          description: >-
+            When the action was taken on the device. An operation that orders
+            writes by time reads its own instant, the `at` of its body or
+            query, which the client sets to the same.
+        touched:
+          type: array
+          maxItems: 5000
+          description: The replica rows the client wrote for the action, including those it deleted.
+          items: { $ref: "#/components/schemas/SyncTouched" }
+
+    SyncActionResult:
+      type: object
+      required: [id, result]
+      properties:
+        id: { type: string, format: uuid }
+        result: { type: string, enum: [accepted, rejected] }
+        code:
+          type: string
+          description: >-
+            With rejected, an Error code the operation answered, or
+            not_replayable or unsupported_version, as replaySyncActions
+            describes. Not an enum, so a later server may add codes.
+        message: { type: string, description: "With rejected, the Error message." }
+
+    SyncActionResults:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/SyncActionResult" }
+
     PlaybackSession:
       type: object
       description: A playback session as the profile's other devices see it.
-      required: [id, itemId, deviceId, deviceName, platform, thisDevice, positionMs, updatedAt]
+      required: [id, itemId, deviceId, deviceName, platform, thisDevice, positionMs, modifiedAt, createdAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         itemId: { $ref: "#/components/schemas/Id" }
@@ -9386,7 +10029,8 @@ components:
         platform: { $ref: "#/components/schemas/Platform" }
         thisDevice: { type: boolean, description: The calling device plays it. }
         positionMs: { type: integer, format: int64, minimum: 0, description: The last position the device reported. }
-        updatedAt: { type: string, format: date-time, description: When the device last reported. }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time, description: When the device last reported. }
         endedAt: { type: string, format: date-time }
         movedToDeviceName:
           type: string
@@ -9486,6 +10130,13 @@ components:
       type: object
       required: [itemId, quality, snapshot]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new download's id, a UUIDv7 the client chose; absent, the
+            server chooses one. Used only when a new download is made: a file
+            already claimed answers its download, with that download's id. An
+            id already in use by another download answers 409.
         itemId: { $ref: "#/components/schemas/Id" }
         editionId:
           $ref: "#/components/schemas/Id"
@@ -9500,6 +10151,14 @@ components:
       type: object
       required: [itemId]
       properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new download's id, a UUIDv7 the client chose; absent, the
+            server chooses one. Used only when a new download is made: a file
+            already claimed answers its download, with that download's id. An
+            id already in use by another download answers 409, as that title's
+            error conflict.
         itemId: { $ref: "#/components/schemas/Id" }
         editionId:
           $ref: "#/components/schemas/Id"
@@ -9564,13 +10223,13 @@ components:
         share of a conversion made.
 
         Instead of polling, a client may fetch the file before it is ready
-        with `?wait=1`, at `/api/v1/downloads/{id}/file`, url's path once
+        with `?wait=1`, at `/api/v2/downloads/{id}/file`, url's path once
         ready: the request is held until the conversion is ready and then
         served as above. A conversion that failed, or fails while held,
         answers 500 internal with its error as the message. A download that
         goes while held answers 404. Without wait, a file not yet ready
         answers 409.
-      required: [id, profileId, itemId, mediaFileId, quality, status, verdict, container, sizeBytes, estimated, progress, subtitles, createdAt]
+      required: [id, profileId, itemId, mediaFileId, quality, status, verdict, container, sizeBytes, estimated, progress, subtitles, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         profileId: { $ref: "#/components/schemas/Id" }
@@ -9590,6 +10249,9 @@ components:
           type: array
           items: { $ref: "#/components/schemas/DownloadSubtitle" }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
+        modifiedBy: { $ref: "#/components/schemas/Id", description: "The profile that last changed it; absent when none did, as for what the server made, or when that profile is gone." }
         expiresAt: { type: string, format: date-time, description: Absent while the conversion is still to finish. }
 
     DownloadPage:
@@ -9608,7 +10270,7 @@ components:
         of the same file at the same quality. height and bitrate are the
         converted picture's, 0 when it is copied; a song's bitrate is its
         audio's.
-      required: [id, mediaFileId, status, verdict, container, height, bitrate, sizeBytes, estimated, progress, downloads, createdAt]
+      required: [id, mediaFileId, status, verdict, container, height, bitrate, sizeBytes, estimated, progress, downloads, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
         mediaFileId: { $ref: "#/components/schemas/Id" }
@@ -9624,6 +10286,7 @@ components:
         downloads: { type: integer, description: The downloads that need it. }
         error: { type: string }
         createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
         startedAt: { type: string, format: date-time }
         finishedAt: { type: string, format: date-time }
 

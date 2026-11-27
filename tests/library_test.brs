@@ -430,13 +430,13 @@ end sub
 
 sub testActiveOccasionsForATitleAskForItsId()
     r = apiRequest("listActiveOccasions", { profileId: 3 }, { date: "2026-12-05", itemId: 31 })
-    assertEqual(r.path, "/api/v1/profiles/3/occasions?date=2026-12-05&itemId=31")
+    assertEqual(r.path, "/api/v2/profiles/3/occasions?date=2026-12-05&itemId=31")
 end sub
 
 sub testActiveOccasionsAskForTheDeviceDateAndEachOneItsTitles()
     r = apiRequest("listActiveOccasions", { profileId: 3 }, { date: "2026-12-05" })
-    assertEqual(r.path, "/api/v1/profiles/3/occasions?date=2026-12-05")
-    assertEqual(apiRequest("listItems", {}, { occasionId: 8, limit: 20 }).path, "/api/v1/items?limit=20&occasionId=8")
+    assertEqual(r.path, "/api/v2/profiles/3/occasions?date=2026-12-05")
+    assertEqual(apiRequest("listItems", {}, { occasionId: 8, limit: 20 }).path, "/api/v2/items?limit=20&occasionId=8")
 end sub
 
 sub testCrewLinesGroupEachJobInCreditOrder()
