@@ -10,7 +10,7 @@ end sub
 
 sub load()
     c = m.top.params.collection
-    netLoad("list", { op: "listCollectionMovies", params: { collectionId: c.id }, query: {} }, "onMovies")
+    netLoad("list", { op: "listCollectionMovies", params: { collectionId: c.id }, query: {}, statesFor: m.global.profileId }, "onMovies")
 end sub
 
 sub onMovies(event as object)
@@ -21,6 +21,7 @@ sub onMovies(event as object)
     end if
     c = m.top.params.collection
     m.movies = r.data
+    m.states = r.states
     uiArt(m.top, c, "poster", 96, 96, 360, 360, uiCollectionArtUrl(c.id, "poster"), "collection")
     title = uiLabel(m.top, c.name, 60, true, "text", 96, 476, 560)
     title.maxLines = 2
@@ -68,6 +69,8 @@ sub addRows(root as object, movies as object)
         n.shortDescriptionLine1 = collectionMovieCaption(item)
         n.hdPosterUrl = uiArtUrl(item.id, "poster")
         n.addFields({ itemId: item.id, rowWidth: 1128, glyph: "movie" })
+        done = libraryResumeFraction({ item: item, state: m.states[item.id.ToStr()], video: false })
+        if done <> invalid then n.addFields({ progress: done })
     end for
 end sub
 

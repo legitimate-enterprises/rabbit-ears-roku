@@ -11,7 +11,7 @@ end sub
 sub load()
     o = m.top.params.occasion
     wash(libraryWashColors(o.colors))
-    netLoad("list", { op: "listItems", params: {}, query: { occasionId: o.id } }, "onTitles")
+    netLoad("list", { op: "listItems", params: {}, query: { occasionId: o.id }, statesFor: m.global.profileId }, "onTitles")
 end sub
 
 ' One spot.png per color, scaled far past the screen and tinted, a little
@@ -36,6 +36,7 @@ sub onTitles(event as object)
     end if
     o = m.top.params.occasion
     m.titles = r.data
+    m.states = r.states
     title = uiLabel(m.top, o.name, 60, true, "text", 96, 96, 560)
     title.maxLines = 2
     if m.titles.Count() = 0
@@ -71,6 +72,8 @@ sub addRows(root as object, titles as object)
         n.shortDescriptionLine1 = collectionMovieCaption(item)
         n.hdPosterUrl = uiArtUrl(item.id, "poster")
         n.addFields({ itemId: item.id, rowWidth: 1128, glyph: item.kind })
+        done = libraryResumeFraction({ item: item, state: m.states[item.id.ToStr()], video: false })
+        if done <> invalid then n.addFields({ progress: done })
     end for
 end sub
 

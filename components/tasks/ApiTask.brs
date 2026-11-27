@@ -39,6 +39,10 @@ sub work()
         if a.offset <> invalid then offset = a.offset
         result = sendAll(a.op, a.params, a.query, 2000, offset)
         result.rest = apiNextBatch(a.op, a.params, a.query, result.nextOffset)
+        ' The profile's states cover every later batch too.
+        if a.statesFor <> invalid and result.ok then result.states = decorStates(a.statesFor)
+    else if r.load = "states"
+        result = statesById(a.profileId)
     else if r.load = "rest"
         result = sendAll(a.op, a.params, a.query, 0, a.offset)
     else if r.load = "playOrder"
@@ -223,6 +227,14 @@ function statesById(profileId as string, parentId = invalid as dynamic) as objec
         byId[w.itemId.ToStr()] = w
     end for
     return { ok: true, data: byId }
+end function
+
+' Watch states that only decorate a screen, as its resume bars: none when
+' they fail.
+function decorStates(profileId as string, parentId = invalid as dynamic) as object
+    r = statesById(profileId, parentId)
+    if r.ok then return r.data
+    return {}
 end function
 
 function done(data as object) as object
@@ -487,6 +499,7 @@ function loadDetails(a as object) as object
     d = { item: item, credits: { cast: [], crew: [] } }
     if item.kind = "movie" or item.kind = "show" then d.occasions = occasionsOf(a, item)
     if item.kind = "movie"
+        d.states = decorStates(a.profileId)
         decorate(d, a, item)
     else if item.kind = "episode"
         season = send("getItem", { itemId: item.parentId })
@@ -509,6 +522,7 @@ function loadDetails(a as object) as object
             premiere = nextSeasonPremiere(season.data)
             if premiere <> invalid then d.upNext.Push(premiere)
         end if
+        d.states = decorStates(a.profileId, show.data.id)
         decorate(d, a, item)
     else
         if item.kind = "season"
@@ -537,7 +551,10 @@ function loadDetails(a as object) as object
             d.episodes[s.id.ToStr()] = eps.data
             all.Append(eps.data)
         end for
-        states = statesById(a.profileId, item.id)
+        ' A show's related shelves hold titles outside it.
+        parentId = item.id
+        if item.kind = "show" then parentId = invalid
+        states = statesById(a.profileId, parentId)
         if not states.ok then return states
         d.states = states.data
         d.next = invalid

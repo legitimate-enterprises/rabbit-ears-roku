@@ -7,6 +7,8 @@ sub init()
     m.keyboard.translation = [96, 200]
     m.keyboard.observeFieldScoped("text", "onText")
     m.sections = []
+    m.states = {}
+    netLoad("states", { profileId: m.global.profileId }, "onStates")
     m.results = m.top.CreateChild("RowList")
     m.results.itemComponentName = "TileItem"
     m.results.numRows = 2
@@ -26,6 +28,11 @@ sub init()
     m.controls.results = m.results
     m.layout = [["keyboard", "results"]]
     m.current = "keyboard"
+end sub
+
+sub onStates(event as object)
+    r = event.getData()
+    if r.ok then m.states = r.data
 end sub
 
 sub onText()
@@ -99,6 +106,8 @@ sub show(sections as object)
                 c.title = itemTitle(x)
                 c.shortDescriptionLine1 = formatYear(x)
                 if x.kind = "episode" then c.shortDescriptionLine1 = formatEpisodeCode(x)
+                done = libraryResumeFraction({ item: x, state: m.states[x.id.ToStr()], video: false })
+                if done <> invalid then c.addFields({ progress: done })
             end if
         end for
         sizes.Push([w, h + 80])

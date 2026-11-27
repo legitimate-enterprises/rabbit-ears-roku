@@ -1,6 +1,6 @@
 ' Content carries title, shortDescriptionLine1 (what the entry stands
 ' for), hdPosterUrl, and the added fields itemId, glyph (the kind its
-' placeholder shows) and rowWidth.
+' placeholder shows), rowWidth and progress, as TileItem's.
 sub draw()
     uiClear(m.top)
     c = m.top.itemContent
@@ -15,6 +15,7 @@ sub draw()
     art.translation = [8, 8]
     uiGlyph(art, c.glyph, 80, 80)
     uiArtPoster(art, 80, 80, c.hdPosterUrl)
+    uiProgress(art, 0, 74, 80, c.progress)
     uiLabel(g, c.title, 30, true, "text", 108, 12).width = w - 128
     uiLabel(g, c.shortDescriptionLine1, 24, false, "dim", 108, 54).width = w - 128
     m.ring = uiRing(g, 0, 0, w, 96)

@@ -14,7 +14,7 @@ sub load()
     name.maxLines = 2
     m.below = 110 + Int(name.boundingRect().height) + 20
     m.note = uiLabel(m.top, "", 30, false, "dim", 296, m.below)
-    netLoad("list", { op: "listItems", params: {}, query: { personId: p.id } }, "onItems")
+    netLoad("list", { op: "listItems", params: {}, query: { personId: p.id }, statesFor: m.global.profileId }, "onItems")
 end sub
 
 sub onItems(event as object)
@@ -24,6 +24,7 @@ sub onItems(event as object)
         return
     end if
     m.items = r.data
+    m.states = r.states
     if m.items.Count() = 0
         m.note.text = formatCountOf(0, "title")
         return
@@ -64,6 +65,8 @@ sub addTiles(items as object)
         if item.kind = "episode" then c.shortDescriptionLine1 = formatEpisodeCode(item)
         c.hdPosterUrl = uiArtUrl(item.id, "poster")
         c.addFields({ itemId: item.id, artWidth: m.width, artHeight: Int(m.width * 1.5), badge: "", glyph: item.kind })
+        done = libraryResumeFraction({ item: item, state: m.states[item.id.ToStr()], video: false })
+        if done <> invalid then c.addFields({ progress: done })
     end for
 end sub
 

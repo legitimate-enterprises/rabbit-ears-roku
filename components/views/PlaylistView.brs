@@ -15,7 +15,9 @@ sub load()
     list = m.top.params.list
     m.music = list.kind = "music"
     if m.music then m.global.music.observeFieldScoped("now", "onNow")
-    netLoad("list", { op: "listPlaylistEntries", params: { profileId: m.global.profileId, playlistId: list.id }, query: {} }, "onEntries")
+    args = { op: "listPlaylistEntries", params: { profileId: m.global.profileId, playlistId: list.id }, query: {} }
+    if not m.music then args.statesFor = m.global.profileId
+    netLoad("list", args, "onEntries")
 end sub
 
 sub onEntries(event as object)
@@ -26,6 +28,8 @@ sub onEntries(event as object)
     end if
     list = m.top.params.list
     m.entries = r.data
+    m.states = {}
+    if r.states <> invalid then m.states = r.states
     art = list.artItemId
     if art = invalid then art = list.id
     url = ""
@@ -82,6 +86,11 @@ sub addRows(root as object, entries as object)
         if e.collectionId <> invalid then glyph = "collection"
         if e.song <> invalid then glyph = "album"
         c.addFields({ itemId: artId, rowWidth: 1128, glyph: glyph })
+        ' A container's row plays its play order, whose first title the entry does not name.
+        if e.item <> invalid and (e.kind = "movie" or e.kind = "episode")
+            done = libraryResumeFraction({ item: e.item, state: m.states[e.itemId.ToStr()], video: false })
+            if done <> invalid then c.addFields({ progress: done })
+        end if
     end for
 end sub
 

@@ -229,6 +229,8 @@ function relatedRows(y as integer) as integer
             c.shortDescriptionLine1 = formatYear(item)
             c.hdPosterUrl = uiArtUrl(item.id, "poster")
             c.addFields({ itemId: item.id, artWidth: 160, artHeight: 240, badge: "", glyph: "movie" })
+            done = libraryResumeFraction({ item: item, state: m.d.states[item.id.ToStr()], video: false })
+            if done <> invalid then c.addFields({ progress: done })
         end for
         id = "related" + i.ToStr()
         rows = m.top.CreateChild("RowList")
@@ -407,6 +409,7 @@ sub drawEpisode(item as object)
             id = "u" + i.ToStr()
             p = uiPanel(m.top, id, 16, 96 + i * 878, upY + 56, 850, 163, "card")
             uiArt(p, e, "poster", 14, 14, 240, 135)
+            uiProgress(p, 14, 143, 240, libraryResumeFraction({ item: e, state: m.d.states[e.id.ToStr()], video: false }))
             uiLabel(p, e.episodeNumber.ToStr() + ". " + itemTitle(e), 30, true, "text", 282, 22).width = 540
             uiLabel(p, formatRuntime(runtimeOf(e)), 24, false, "dim", 282, 64)
             uiLabel(p, overviewOf(e), 24, false, "sub", 282, 100).width = 540

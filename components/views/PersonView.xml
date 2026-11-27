@@ -9,6 +9,7 @@
     <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
     <script type="text/brightscript" uri="pkg:/components/common/batch.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
     <interface>
         <field id="params" type="assocarray" onChange="load" />
         <field id="navigate" type="assocarray" alwaysNotify="true" />
