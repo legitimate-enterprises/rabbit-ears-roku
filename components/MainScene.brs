@@ -28,6 +28,7 @@ sub init()
     m.stack = []
     m.pending = invalid
     m.launch = { launched: false, inDialog: false }
+    rememberDropStale()
     s = sessionRead()
     ' SignInView says why a stored server that is not secure goes unused.
     if not apiSecure(s.server) then s.token = ""
@@ -319,3 +320,13 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     return true
 end function
+
+' Deletes what rememberStale names from the registry.
+sub rememberDropStale()
+    r = CreateObject("roRegistrySection", "RabbitEars")
+    stale = rememberStale(r.GetKeyList())
+    for each key in stale
+        r.Delete(key)
+    end for
+    if stale.Count() > 0 then r.Flush()
+end sub

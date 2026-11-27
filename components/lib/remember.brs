@@ -18,3 +18,15 @@ function rememberLaunch(settings as object, me as object) as object
     if locked then return { go: "unlock", profile: p }
     return { go: "home", profile: p }
 end function
+
+' The registry keys of Remember profile and Skip PIN kept under an account
+' id that is no id the server gives, which no adult signs in as again.
+function rememberStale(keys as object) as object
+    stale = []
+    for each key in keys
+        for each prefix in ["remember.", "skipPin."]
+            if Left(key, Len(prefix)) = prefix and not apiId(key.Mid(Len(prefix))) then stale.Push(key)
+        end for
+    end for
+    return stale
+end function

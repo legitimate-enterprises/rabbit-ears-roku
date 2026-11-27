@@ -41,3 +41,9 @@ sub testGoneProfileFallsBackToWhoIsWatching()
     assertEqual(rememberLaunch(s, rememberMe(false, uid(3))), { go: "who" }, "pending")
     assertEqual(rememberLaunch(s, rememberMe(false, uid(4))), { go: "who" }, "revoked")
 end sub
+
+sub testChoicesKeptUnderAnIdNoServerGivesAreStale()
+    keys = ["server", "token", "remember." + uid(1), "skipPin." + uid(1), "remember.7", "skipPin.7", "sections.http://tv.local:8477", "grid.movie.sort"]
+    assertEqual(rememberStale(keys), ["remember.7", "skipPin.7"])
+    assertEqual(rememberStale([]), [])
+end sub
