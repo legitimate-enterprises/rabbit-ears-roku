@@ -1,7 +1,7 @@
 name: release
 
-# A `roku-v<major_version>` tag, which `make deploy` pushes, signs the app on
-# the developer-mode Roku at ROKU_HOST and attaches the package to the tag's
+# A `v<version>` tag, which `make deploy` pushes, signs the app on the
+# developer-mode Roku at ROKU_HOST and attaches the package to the tag's
 # GitHub release, for upload by hand in the Roku Developer Dashboard.
 #
 # The job runs on the self-hosted runner: that Roku holds the app's signing
@@ -10,7 +10,7 @@ name: release
 # proposes runs on that host.
 on:
   push:
-    tags: ['roku-v*']
+    tags: ['v[0-9]*']
 
 concurrency:
   group: release-${{ github.ref_name }}

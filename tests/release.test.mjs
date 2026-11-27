@@ -74,7 +74,7 @@ function workspace() {
   mkdirSync(join(dir, "bin"));
   copyFileSync(new URL("../scripts/release.sh", import.meta.url), join(dir, "scripts/release.sh"));
   chmodSync(join(dir, "scripts/release.sh"), 0o755);
-  writeFileSync(join(dir, "manifest"), "title=Rabbit Ears\nmajor_version=7\nminor_version=0\nbuild_version=0\n");
+  writeFileSync(join(dir, "manifest"), "title=Rabbit Ears\nmajor_version=7\nminor_version=2\nbuild_version=5\n");
   writeFileSync(join(dir, "Makefile"), "build:\n\tmkdir -p build && printf zip > build/rabbit-ears.zip\n");
   // A release that exists already refuses create, as gh does.
   writeFileSync(join(dir, "bin/gh"), '#!/bin/sh\necho "$*" >> gh.log\n[ "$2" != create ] || [ -z "$GH_EXISTS" ]\n');
@@ -85,7 +85,7 @@ function workspace() {
   return dir;
 }
 
-function release(dir, host, env = {}, tag = "roku-v7") {
+function release(dir, host, env = {}, tag = "v7.2.5") {
   const child = spawn(join(dir, "scripts/release.sh"), [tag], {
     env: {
       PATH: `${join(dir, "bin")}:${process.env.PATH}`,
@@ -131,9 +131,9 @@ test("signs the sideloaded build and attaches the package to the tag's release",
       ],
     );
     assert.equal(field(roku.requests[1].body, "archive"), "zip");
-    assert.equal(field(roku.requests[2].body, "app_name"), "Rabbit Ears/7");
+    assert.equal(field(roku.requests[2].body, "app_name"), "Rabbit Ears/7.2.5");
     assert.equal(read(dir, "build/rabbit-ears.pkg"), "signed package");
-    assert.match(read(dir, "gh.log"), /^release create roku-v7 build\/rabbit-ears\.pkg .*--verify-tag/);
+    assert.match(read(dir, "gh.log"), /^release create v7\.2\.5 build\/rabbit-ears\.pkg .*--verify-tag/);
     assert.match(read(dir, "curl.log"), /plugin_package/);
     for (const text of [out, read(dir, "curl.log")]) {
       assert.ok(!text.includes(DEV_PASSWORD) && !text.includes(SIGNING_PASSWORD), text);
@@ -144,7 +144,7 @@ test("a Roku still waking from standby is waited for", () =>
   withRoku({ asleep: 2 }, async (roku, dir) => {
     const { code, out } = await release(dir, roku.host, { ROKU_WAKE_PAUSE: "0" });
     assert.equal(code, 0, out);
-    assert.match(read(dir, "gh.log"), /release create roku-v7/);
+    assert.match(read(dir, "gh.log"), /release create v7\.2\.5 /);
   }));
 
 test("a missing secret fails before the build, naming the secret", () =>
@@ -156,13 +156,16 @@ test("a missing secret fails before the build, naming the secret", () =>
     assert.deepEqual(roku.requests, []);
   }));
 
-test("a tag the manifest does not state fails before the build", () =>
-  withRoku({}, async (roku, dir) => {
-    const { code, out } = await release(dir, roku.host, {}, "roku-v8");
-    assert.notEqual(code, 0);
-    assert.match(out, /roku-v8 is not the major_version that manifest states/);
-    assert.equal(read(dir, "build/rabbit-ears.zip"), undefined);
-  }));
+test("a tag the manifest does not state fails before the build", async () => {
+  for (const tag of ["v7.2.6", "v7.2", "roku-v7", "7.2.5"]) {
+    await withRoku({}, async (roku, dir) => {
+      const { code, out } = await release(dir, roku.host, {}, tag);
+      assert.notEqual(code, 0, tag);
+      assert.match(out, new RegExp(`${tag} is not v7\\.2\\.5, the version manifest states`), tag);
+      assert.equal(read(dir, "build/rabbit-ears.zip"), undefined);
+    });
+  }
+});
 
 test("a wrong developer password names ROKU_PASSWORD", () =>
   withRoku({}, async (roku, dir) => {
@@ -200,7 +203,7 @@ test("a re-run replaces the package on the release its first attempt made", () =
   withRoku({}, async (roku, dir) => {
     const { code, out } = await release(dir, roku.host, { GH_EXISTS: "1" });
     assert.equal(code, 0, out);
-    assert.match(read(dir, "gh.log"), /\nrelease upload roku-v7 build\/rabbit-ears\.pkg --clobber\n$/);
+    assert.match(read(dir, "gh.log"), /\nrelease upload v7\.2\.5 build\/rabbit-ears\.pkg --clobber\n$/);
   }));
 
 test("a release outside CI is refused before anything else", () =>
@@ -212,11 +215,11 @@ test("a release outside CI is refused before anything else", () =>
     assert.deepEqual(roku.requests, []);
   }));
 
-test("a tag is compared to the manifest's major_version as text, not a pattern", () =>
+test("a tag is compared to the manifest's version as text, not a pattern", () =>
   withRoku({}, async (roku, dir) => {
-    const { code, out } = await release(dir, roku.host, {}, "roku-v.");
+    const { code, out } = await release(dir, roku.host, {}, "v7x2x5");
     assert.notEqual(code, 0);
-    assert.match(out, /roku-v\. is not the major_version that manifest states/);
+    assert.match(out, /v7x2x5 is not v7\.2\.5, the version manifest states/);
     assert.equal(read(dir, "build/rabbit-ears.zip"), undefined);
   }));
 

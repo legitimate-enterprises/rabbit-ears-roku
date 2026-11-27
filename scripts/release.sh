@@ -4,23 +4,24 @@
 # Roku Developer Dashboard. The device holds the app's signing key and
 # ROKU_SIGNING_PASSWORD is that key's password.
 #
-# CI only: it is what a release job for a roku-v<major_version> tag runs, with
+# CI only: it is what a release job for a v<version> tag runs, with
 # ROKU_HOST, ROKU_PASSWORD, ROKU_SIGNING_PASSWORD and GH_TOKEN in its
-# environment.
+# environment. The version is manifest's
+# major_version.minor_version.build_version.
 #
-#   release.sh roku-v<major_version>
+#   release.sh v<version>
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 die() { echo "error: $*" >&2; exit 1; }
 
-tag="${1:?usage: release.sh roku-v<major_version>}"
+tag="${1:?usage: release.sh v<version>}"
 [ -n "${CI:-}" ] || die "releases are produced by CI only; cut one with: make deploy"
 for var in ROKU_HOST ROKU_PASSWORD ROKU_SIGNING_PASSWORD GH_TOKEN; do
     [ -n "${!var:-}" ] || die "$var is not set"
 done
-version="${tag#roku-v}"
-grep -qxF "major_version=$version" manifest || die "$tag is not the major_version that manifest states"
+version="$(sed -n 's/^major_version=//p' manifest).$(sed -n 's/^minor_version=//p' manifest).$(sed -n 's/^build_version=//p' manifest)"
+[ "$tag" = "v$version" ] || die "$tag is not v$version, the version manifest states"
 
 make --no-print-directory build
 

@@ -37,10 +37,10 @@ spec: ## Replace openapi.yaml with the one from server release VERSION (make spe
 	mv openapi.yaml.new openapi.yaml
 
 # There is no local publish path.
-deploy: ## Tag origin/main roku-v<major_version> once CI is green there, and push the tag
-	scripts/cut-release.sh roku
+deploy: ## Tag origin/main v<version> once CI is green there, and push the tag
+	scripts/cut-release.sh --yes
 
-# CI only, for a roku-v tag. Needs ROKU_HOST, ROKU_PASSWORD,
+# CI only, for a v<version> tag. Needs ROKU_HOST, ROKU_PASSWORD,
 # ROKU_SIGNING_PASSWORD and GH_TOKEN; the host is a Roku in developer mode
 # that holds the app's signing key.
 release: ## Sign the package on the Roku at ROKU_HOST and attach it to TAG's GitHub release

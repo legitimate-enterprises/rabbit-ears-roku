@@ -14,9 +14,10 @@ Ears server or is invited to one.
   against, and a test fails when the app calls an operation the spec lacks.
   `make spec VERSION=<server version>` replaces it with another release's.
 - `make run` sideloads the package to a Roku in developer mode.
-- `make deploy` tags `roku-v<major_version>` once CI is green on `main`. The
-  tag's release job signs the package on the developer-mode Roku that holds
-  the signing key and attaches it to the tag's GitHub release.
+- `make deploy` tags `v<version>`, the version `manifest` states, once CI
+  is green on `main`. The tag's release job signs the package on the
+  developer-mode Roku that holds the signing key and attaches it to the
+  tag's GitHub release.
 
 Limitations: the signed package is uploaded to the Roku Developer Dashboard
 by hand, and the release job needs a runner on that Roku's network.

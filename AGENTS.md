@@ -1,7 +1,7 @@
 @~/.agents/instructions/agents.md
 @./README.md
 
-- Release tags: `roku-v<major_version>`, at the version `manifest` states, by
+- Release tags: `v<version>`, at the version `manifest` states, by
   `make deploy`.
 - Red-green: write the failing test first, then the minimum code. Judge
   coverage by the defects caught at seams: the API boundary, playback, the
@@ -13,5 +13,6 @@
 - `openapi.yaml` is the server's file, replaced whole by `make spec` and
   never edited here. Its `info.version` is the server release the app is
   built against, and the app may assume that API.
-- The app's version is a counter: `major_version` in `manifest`, one higher
-  in the first change after its last release.
+- The app's version is `M.M.P`: `major_version`, `minor_version` and
+  `build_version` in `manifest`, raised in the first change after a release
+  tag.

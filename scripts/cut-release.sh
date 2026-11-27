@@ -1,59 +1,49 @@
 #!/usr/bin/env bash
-# Tags the app for release. Its version is the major_version that manifest
-# states on origin/main, so there is no bump to choose here: the tag is
-# roku-v<major_version>, cut on origin/main once ci is green there, and
-# pushing it starts release.yaml. `make deploy` runs this with the one
-# component.
+# Tags the app for release. Its version is the
+# major_version.minor_version.build_version that manifest states on
+# origin/main, so there is no bump to choose here: the tag is v<version>, cut
+# on origin/main once ci is green there, and pushing it starts release.yaml.
 #
 # Usage: cut-release.sh                  the version and its state
-#        cut-release.sh roku             tag and push
+#        cut-release.sh --yes            tag and push
 #        cut-release.sh --check <tag>    fail unless HEAD states the tag's version
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-COMPONENTS="roku"
+SOURCE=manifest
+# What ships.
+PATHS="manifest source components scripts/images.mjs"
 
 die() { echo "error: $*" >&2; exit 1; }
 
-# source_of <component>: the file that states its version.
-source_of() {
-    case "$1" in
-        roku) echo manifest ;;
-        *) die "unknown component '$1' (one of: $COMPONENTS)" ;;
-    esac
-}
-
-# paths_of <component>: what ships in it.
-paths_of() { echo manifest source components scripts/images.mjs; }
-
-# version_at <component> <ref>
+# version_at <ref>
 version_at() {
-    local file v form='^[1-9][0-9]*$'
-    file="$(source_of "$1")"
-    v="$(git show "$2:$file" | sed -n 's/^major_version=//p')"
-    [[ "$v" =~ $form ]] || die "$file at $2 states no version of the form $form (got '$v')"
+    local text v form='^[0-9]+\.[0-9]+\.[0-9]+$'
+    text="$(git show "$1:$SOURCE")"
+    v="$(sed -n 's/^major_version=//p' <<< "$text").$(sed -n 's/^minor_version=//p' <<< "$text").$(sed -n 's/^build_version=//p' <<< "$text")"
+    [[ "$v" =~ $form ]] || die "$SOURCE at $1 states no version of the form $form (got '$v')"
     echo "$v"
 }
 
-# state_of <component>: one line saying whether it can be tagged. Returns 0
-# when it can, 1 when there is nothing to release, 2 when its version must be
-# put right first.
+# state_of: one line saying whether origin/main can be tagged. Returns 0 when
+# it can, 1 when there is nothing to release, 2 when the version must be put
+# right first.
 state_of() {
-    local c="$1" v tag newest
-    v="$(version_at "$c" origin/main)" || return 2
-    tag="$c-v$v"
+    local v tag newest
+    v="$(version_at origin/main)" || return 2
+    tag="v$v"
     if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
-        # shellcheck disable=SC2046 # the paths are separate arguments
-        if git diff --quiet "$tag" origin/main -- $(paths_of "$c"); then
+        # shellcheck disable=SC2086 # the paths are separate arguments
+        if git diff --quiet "$tag" origin/main -- $PATHS; then
             echo "$v is released and nothing in it has changed"
             return 1
         fi
-        echo "changed since $tag but still says $v: raise the version in $(source_of "$c")"
+        echo "changed since $tag but still says $v: raise the version in $SOURCE"
         return 2
     fi
-    newest="$(git tag --list "$c-v*" | sed "s/^$c-v//" | sort -V | tail -1)"
+    newest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -1)"
     if [ -n "$newest" ] && [ "$(printf '%s\n%s\n' "$newest" "$v" | sort -V | tail -1)" != "$v" ]; then
-        echo "says $v, below the released $newest: raise the version in $(source_of "$c")"
+        echo "says $v, below the released $newest: raise the version in $SOURCE"
         return 2
     fi
     echo "$v is ready: $tag"
@@ -61,53 +51,29 @@ state_of() {
 
 if [ "${1:-}" = "--check" ]; then
     tag="${2:?usage: cut-release.sh --check <tag>}"
-    c="${tag%%-v*}"
-    [ "$tag" = "$c-v$(version_at "$c" HEAD)" ] || die "$tag is on a commit whose $(source_of "$c") says $(version_at "$c" HEAD)"
+    v="$(version_at HEAD)"
+    [ "$tag" = "v$v" ] || die "$tag is on a commit whose $SOURCE says $v"
     exit 0
 fi
 
 confirmed=""
-if [ "${!#}" = "--yes" ]; then
-    confirmed=1
-    set -- "${@:1:$#-1}"
-fi
+case "$*" in
+    "") ;;
+    --yes) confirmed=1 ;;
+    *) die "usage: cut-release.sh [--yes] | --check <tag>" ;;
+esac
 
 git fetch origin main --tags --quiet
 
-if [ $# -eq 0 ]; then
-    for c in $COMPONENTS; do
-        printf '%-8s %s\n' "$c" "$(state_of "$c" || true)"
-    done
-    echo "usage: make deploy"
-    exit 0
-fi
-
-if [ "$1" = all ]; then
-    [ $# -eq 1 ] || die "usage: cut-release.sh all [--yes]"
-    set --
-    wrong=""
-    for c in $COMPONENTS; do
-        rc=0
-        state="$(state_of "$c")" || rc=$?
-        printf '%-8s %s\n' "$c" "$state"
-        case "$rc" in
-            0) set -- "$@" "$c" ;;
-            2) wrong="$wrong $c" ;;
-        esac
-    done
-    [ -z "$wrong" ] || die "nothing tagged: put right first:$wrong"
-    [ $# -gt 0 ] || die "nothing is ready to release"
-    [ -n "$confirmed" ] || die "nothing tagged: to tag $*, run: scripts/cut-release.sh all --yes"
-fi
-
-# Every component is checked before any tag exists, so a refusal leaves
-# nothing half released.
-tags=()
-for c in "$@"; do
-    state="$(state_of "$c")" || die "$c ${state:-states no usable version}"
-    tags+=("${state##* }")
-done
-[ "$(printf '%s\n' "${tags[@]}" | sort -u | wc -l)" -eq ${#tags[@]} ] || die "a component is named twice"
+rc=0
+state="$(state_of)" || rc=$?
+[ -z "$state" ] || echo "$state"
+case "$rc" in
+    1) [ -z "$confirmed" ] || die "nothing is ready to release"; exit 0 ;;
+    2) die "nothing tagged: put the version right first" ;;
+esac
+tag="${state##* }"
+[ -n "$confirmed" ] || { echo "usage: make deploy"; exit 0; }
 
 # A tag is a promise that its commit passed ci, so the check comes before
 # the tag exists; release.yaml asserts it again and never waits, because a
@@ -136,14 +102,10 @@ elif [ "$run_conclusion" != "success" ]; then
     die "ci concluded '$run_conclusion'; no tag created: $run_url"
 fi
 
-# main can move while ci runs; the tags belong on the commit that run vouched for.
+# main can move while ci runs; the tag belongs on the commit that run vouched for.
 git fetch origin main --quiet
 [ "$(git rev-parse origin/main)" = "$sha" ] || die "origin/main moved while ci ran; no tag created"
 
-# One push per tag: GitHub starts no workflow for tags that arrive more than
-# three to a push.
-for tag in "${tags[@]}"; do
-    git tag --annotate "$tag" --message "$tag" "$sha"
-    git push origin "$tag"
-    echo "pushed $tag"
-done
+git tag --annotate "$tag" --message "$tag" "$sha"
+git push origin "$tag"
+echo "pushed $tag"
