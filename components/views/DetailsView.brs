@@ -121,7 +121,7 @@ sub castRow(y as integer, below = false as boolean)
         g = m.top.CreateChild("Group")
         g.translation = [x, y + 56]
         g.focusable = true
-        uiRound(g, c.personId, 25, 0, 140, "person", uiPersonArtUrl(c.personId), formatPersonColor(c.personId))
+        uiRound(g, c.personId, 25, 0, 140, "person", uiPersonArtUrl(c, c.personId), formatPersonColor(c.personId))
         m.rings[id] = uiImage(g, "disc-ring.png", 15, -10, 160, 160, uiColor("accent"))
         m.rings[id].visible = false
         n = uiLabel(g, c.name, 24, true, "text", 0, 150)
@@ -227,7 +227,7 @@ function relatedRows(y as integer) as integer
             c = row.CreateChild("ContentNode")
             c.title = itemTitle(item)
             c.shortDescriptionLine1 = formatYear(item)
-            c.hdPosterUrl = uiArtUrl(item.id, "poster")
+            c.hdPosterUrl = uiArtUrl(item, "poster")
             c.addFields({ itemId: item.id, artWidth: 160, artHeight: 240, badge: "", glyph: "movie" })
             done = libraryResumeFraction({ item: item, state: m.d.states[item.id.ToStr()], video: false })
             if done <> invalid then c.addFields({ progress: done })

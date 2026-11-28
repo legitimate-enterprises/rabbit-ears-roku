@@ -155,6 +155,21 @@ sub testMusicAndYouTubeRequests()
     assertEqual([r.method, r.path, r.body], ["PUT", "/api/v2/profiles/3/youtube/channels/41/watch-state", "{""watched"":true}"])
 end sub
 
+sub testArtIsTheAddressTheDataCarries()
+    item = { id: uid(4), posterUrl: "/api/v2/artwork/w500/abc.jpg", backdropUrl: "/api/v2/artwork/w1280/def.jpg" }
+    assertEqual(apiArtPath(item, "backdropUrl", "getItemArtwork", { itemId: uid(4), kind: "backdrop" }), "/api/v2/artwork/w1280/def.jpg")
+    assertEqual(apiArtPath({ personId: uid(9), headshotUrl: "/api/v2/artwork/w185/p.jpg" }, "headshotUrl", "getPersonArtwork", { personId: uid(9) }), "/api/v2/artwork/w185/p.jpg")
+end sub
+
+' A reply from a server before 0.24.0, or kept from before the upgrade,
+' lacks the field; so does one for something with no image, whose id
+' address misses and leaves the placeholder.
+sub testArtWithoutTheFieldIsTheIdAddress()
+    assertEqual(apiArtPath({ id: uid(4) }, "posterUrl", "getItemArtwork", { itemId: uid(4), kind: "poster" }), "/api/v2/items/" + uid(4) + "/artwork/poster")
+    assertEqual(apiArtPath({ id: 5 }, "backdropUrl", "getCollectionArtwork", { collectionId: 5, kind: "backdrop" }), "/api/v2/collections/5/artwork/backdrop")
+    assertEqual(apiArtPath(invalid, "posterUrl", "getItemArtwork", { itemId: 7, kind: "poster" }), "/api/v2/items/7/artwork/poster", "no object at all")
+end sub
+
 sub testWatchTogetherStateIsAPutWithItsPosition()
     r = apiRequest("setWatchTogetherState", { watchTogetherId: 7 }, {}, { playing: false, positionMs: 4360000 })
     assertEqual(r.method, "PUT")

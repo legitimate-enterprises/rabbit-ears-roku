@@ -191,7 +191,7 @@ sub fill()
         c = root.CreateChild("ContentNode")
         c.title = itemTitle(item)
         c.shortDescriptionLine1 = caption(item)
-        c.hdPosterUrl = uiArtUrl(item.id, "poster")
+        c.hdPosterUrl = uiArtUrl(item, "poster")
         badge = ""
         unwatched = libraryStanding(item, m.data.states, m.data.progress).unwatched
         if unwatched > 0
@@ -248,7 +248,7 @@ sub addTiles(root as object, rows as object)
             if x.imageUrl <> invalid
                 c.hdPosterUrl = m.global.server + x.imageUrl
             else if x.artItemId <> invalid
-                c.hdPosterUrl = uiArtUrl(x.artItemId, "poster")
+                c.hdPosterUrl = uiArtUrl(x, "poster", x.artItemId)
                 colorId = x.artItemId
             end if
             c.addFields({ itemId: colorId, artWidth: m.width, artHeight: m.artHeight, badge: "", glyph: "playlist", shared: x.shared })
@@ -256,7 +256,7 @@ sub addTiles(root as object, rows as object)
             c = root.CreateChild("ContentNode")
             c.title = x.name
             c.shortDescriptionLine1 = collectionCaption(x)
-            c.hdPosterUrl = uiCollectionArtUrl(x.id, "poster")
+            c.hdPosterUrl = uiCollectionArtUrl(x, "poster")
             c.addFields({ itemId: x.id, artWidth: m.width, artHeight: m.artHeight, badge: "", glyph: "collection", ordered: collectionOrdered(x) })
         end if
     end for

@@ -1,11 +1,11 @@
 ' Instants are UTC; the runner sets the local zone to New York.
 
 function stationMovie(title as string, startsAt as string, endsAt as string) as object
-    return { itemId: 41, editionId: 9, kind: "movie", startsAt: startsAt, endsAt: endsAt, durationMs: 6000000, item: { id: 41, parsedTitle: LCase(title), metadata: { title: title } } }
+    return { itemId: 41, editionId: 9, kind: "movie", startsAt: startsAt, endsAt: endsAt, durationMs: 6000000, item: { id: 41, parsedTitle: LCase(title), metadata: { title: title }, backdropUrl: "/api/v2/artwork/w1280/m.jpg" } }
 end function
 
 function stationSong(title as string, startsAt as string) as object
-    return { itemId: 77, editionId: 77, kind: "song", startsAt: startsAt, endsAt: startsAt, durationMs: 215000, song: { id: 77, albumId: 12, title: title } }
+    return { itemId: 77, editionId: 77, kind: "song", startsAt: startsAt, endsAt: startsAt, durationMs: 215000, song: { id: 77, albumId: 12, title: title, posterUrl: "/api/v2/artwork/caa/a.jpg" } }
 end function
 
 sub testOnAirSaysWhatIsOnAndWhatIsNextInLocalTime()
@@ -47,11 +47,20 @@ end sub
 
 sub testArtIsWhatIsOnElseWhatIsNextElseNone()
     now = stationMovie("The Lantern Keeper", "2026-11-13T19:00:00Z", "2026-11-13T20:52:00Z")
-    upcoming = { itemId: 52, editionId: 52, kind: "episode", startsAt: "2026-11-13T21:00:00Z", endsAt: "2026-11-13T21:30:00Z", durationMs: 1500000, item: { id: 52, parsedTitle: "Pilot" } }
-    assertEqual(stationArt({ status: "on_air", now: now, next: upcoming }), { id: 41, kind: "backdrop" })
-    assertEqual(stationArt({ status: "between_programs", next: upcoming }), { id: 52, kind: "poster" })
-    assertEqual(stationArt({ status: "on_air", now: stationSong("Paper Lanterns", "2026-11-13T21:00:00Z") }), { id: 12, kind: "poster" }, "a song's album")
+    upcoming = { itemId: 52, editionId: 52, kind: "episode", startsAt: "2026-11-13T21:00:00Z", endsAt: "2026-11-13T21:30:00Z", durationMs: 1500000, item: { id: 52, parsedTitle: "Pilot", posterUrl: "/api/v2/artwork/w500/e.jpg" } }
+    assertEqual(stationArt({ status: "on_air", now: now, next: upcoming }), { id: 41, path: "/api/v2/artwork/w1280/m.jpg" })
+    assertEqual(stationArt({ status: "between_programs", next: upcoming }), { id: 52, path: "/api/v2/artwork/w500/e.jpg" })
+    assertEqual(stationArt({ status: "on_air", now: stationSong("Paper Lanterns", "2026-11-13T21:00:00Z") }), { id: 12, path: "/api/v2/artwork/caa/a.jpg" }, "a song's album")
     assertEqual(stationArt({ status: "off_schedule" }), invalid)
+end sub
+
+sub testArtWithoutTheFieldIsTheIdAddress()
+    now = stationMovie("The Lantern Keeper", "2026-11-13T19:00:00Z", "2026-11-13T20:52:00Z")
+    now.item.Delete("backdropUrl")
+    assertEqual(stationArt({ status: "on_air", now: now }), { id: 41, path: "/api/v2/items/41/artwork/backdrop" })
+    song = stationSong("Paper Lanterns", "2026-11-13T21:00:00Z")
+    song.song.Delete("posterUrl")
+    assertEqual(stationArt({ status: "on_air", now: song }), { id: 12, path: "/api/v2/items/12/artwork/poster" }, "a song's album")
 end sub
 
 sub testTunedInPlaysUntilTheProgramEnds()

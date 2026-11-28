@@ -221,7 +221,7 @@ sub addTiles(root as object, rows as object)
         if m.chip = "playlists" and x.imageUrl <> invalid
             c.hdPosterUrl = m.global.server + x.imageUrl
         else if t.artId <> invalid
-            c.hdPosterUrl = uiArtUrl(t.artId, "poster")
+            c.hdPosterUrl = uiArtUrl(x, "poster", t.artId)
             colorId = t.artId
         end if
         c.addFields({ itemId: colorId, artWidth: m.width, artHeight: m.artHeight, badge: t.badge, glyph: m.chip, round: shapeOf(m.chip) = "round", shared: m.chip = "playlists" and x.shared })

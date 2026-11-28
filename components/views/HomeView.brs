@@ -24,7 +24,7 @@ function tile(item as object, title as string, caption as string, kind as string
     c = CreateObject("roSGNode", "ContentNode")
     c.title = title
     c.shortDescriptionLine1 = caption
-    c.hdPosterUrl = uiArtUrl(item.id, kind)
+    c.hdPosterUrl = uiArtUrl(item, kind)
     glyph = ""
     if item.DoesExist("kind") then glyph = item.kind
     c.addFields({ itemId: item.id, artWidth: w, artHeight: h, badge: "", glyph: glyph })
@@ -136,7 +136,7 @@ sub onHome(event as object)
         art.width = 1920
         art.height = 600
         art.loadDisplayMode = "scaleToZoom"
-        art.uri = uiArtUrl(m.heroDetails.id, artKind)
+        art.uri = uiArtUrl(m.heroDetails, artKind)
         uiImage(m.top, "fade.png", 0, 0, 1920, 600)
         uiLabel(m.top, "Continue watching", 24, true, "accent", 96, 190)
         uiLabel(m.top, title, 76, true, "text", 96, 220, 1500)

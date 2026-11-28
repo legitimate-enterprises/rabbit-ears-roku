@@ -21,7 +21,7 @@ sub draw()
     if song = invalid then return
     g = m.top.CreateChild("Group")
     shape = uiShape(g, 14, 0, 0, 0, 64, uiColor("raised"))
-    uiArt(g, { id: song.albumId }, "poster", 8, 8, 48, 48, "", "album")
+    uiArt(g, { id: song.albumId }, "poster", 8, 8, 48, 48, uiArtUrl(song, "poster", song.albumId), "album")
     uiImage(g, "bars.png", 72, 19, 26, 26, uiColor("accent"))
     l = uiLabel(g, song.title, 26, true, "text", 108, 0)
     l.height = 64

@@ -72,7 +72,7 @@ sub draw()
     if m.details and m.groups.Count() > 0
         detailsPanel(m.groups)
     else
-        uiArt(m.top, { id: song.albumId }, "poster", 96, 225, 500, 500, "", "album")
+        uiArt(m.top, { id: song.albumId }, "poster", 96, 225, 500, 500, uiArtUrl(song, "poster", song.albumId), "album")
     end if
     x = 652
     if now.station <> invalid
@@ -191,7 +191,7 @@ sub upNext(songs as object)
     pitch = 96
     if songs.Count() > 7 then pitch = 742 \ songs.Count()
     for each s in songs
-        uiArt(m.top, { id: s.albumId }, "poster", 1220, y, 60, 60, "", "album")
+        uiArt(m.top, { id: s.albumId }, "poster", 1220, y, 60, 60, uiArtUrl(s, "poster", s.albumId), "album")
         uiLabel(m.top, s.title, 30, true, "text", 1304, y - 6).width = 400
         uiLabel(m.top, s.artistName, 26, false, "dim", 1304, y + 34).width = 400
         if s.durationMs <> invalid

@@ -36,7 +36,7 @@ sub onChannel(event as object)
     today = formatToday()
     m.page = m.top.CreateChild("Group")
     c = m.channel
-    uiRound(m.page, c.id, 96, 96, 280, "channel")
+    uiRound(m.page, c.id, 96, 96, 280, "channel", uiArtUrl(c, "poster"))
     overview = c.overview
     facts = [formatCountOf(c.videoCount, "video"), formatCount(c.unwatchedCount) + " unwatched"]
     if c.lastVideoOn <> invalid then facts.Push("Last video " + formatAgo(c.lastVideoOn, today))
@@ -102,7 +102,7 @@ sub addTiles(root as object, videos as object)
         t.title = v.title
         t.shortDescriptionLine1 = formatVideoCaption(v, today, false)
         badge = uiPick(v.watched <> invalid and v.watched, "", "dot")
-        t.hdPosterUrl = uiArtUrl(v.id, "poster")
+        t.hdPosterUrl = uiArtUrl(v, "poster")
         t.addFields({ itemId: v.id, artWidth: m.tileWidth, artHeight: m.tileHeight, badge: badge, glyph: "video" })
         done = libraryResumeFraction({ item: v, state: v, video: true })
         if done <> invalid then t.addFields({ progress: done })

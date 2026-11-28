@@ -25,7 +25,7 @@ sub onArtist(event as object)
     m.popular = r.data.popular
     m.albums = r.data.albums
     m.page = m.top.CreateChild("Group")
-    uiRound(m.page, a.id, 96, 96, 360, "artist")
+    uiRound(m.page, a.id, 96, 96, 360, "artist", uiArtUrl(a, "poster"))
     uiLabel(m.page, a.name, 76, true, "text", 512, 90)
     parts = []
     for each f in musicArtistFacts(a)
@@ -67,7 +67,7 @@ sub albumRow()
         caption = ""
         if album.year <> invalid then caption = album.year.ToStr()
         c.shortDescriptionLine1 = caption
-        c.hdPosterUrl = uiArtUrl(album.id, "poster")
+        c.hdPosterUrl = uiArtUrl(album, "poster")
         c.addFields({ itemId: album.id, artWidth: 200, artHeight: 200, badge: "", glyph: "album" })
     end for
     rows = m.page.CreateChild("RowList")

@@ -23,7 +23,7 @@ sub onMovies(event as object)
     c = m.top.params.collection
     m.movies = r.data
     m.states = r.states
-    uiArt(m.top, c, "poster", 96, 96, 360, 360, uiCollectionArtUrl(c.id, "poster"), "collection")
+    uiArt(m.top, c, "poster", 96, 96, 360, 360, uiCollectionArtUrl(c, "poster"), "collection")
     title = uiLabel(m.top, c.name, 60, true, "text", 96, 476, 560)
     title.maxLines = 2
     y = 476 + Int(title.boundingRect().height) + 12
@@ -72,7 +72,7 @@ sub addRows(root as object, movies as object)
         n = root.CreateChild("ContentNode")
         n.title = itemTitle(item)
         n.shortDescriptionLine1 = collectionMovieCaption(item)
-        n.hdPosterUrl = uiArtUrl(item.id, "poster")
+        n.hdPosterUrl = uiArtUrl(item, "poster")
         n.addFields({ itemId: item.id, rowWidth: 1128, glyph: "movie" })
         done = libraryResumeFraction({ item: item, state: m.states[item.id.ToStr()], video: false })
         if done <> invalid then n.addFields({ progress: done })

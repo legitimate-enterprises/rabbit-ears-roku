@@ -32,7 +32,7 @@ sub onEntries(event as object)
     if r.states <> invalid then m.states = r.states
     art = list.artItemId
     if art = invalid then art = list.id
-    url = ""
+    url = uiArtUrl(list, "poster", art)
     if list.imageUrl <> invalid then url = m.global.server + list.imageUrl
     uiArt(m.top, { id: art }, "poster", 96, 96, 360, 360, url, "playlist")
     title = uiLabel(m.top, list.name, 60, true, "text", 96, 476, 560)
@@ -80,8 +80,7 @@ sub addRows(root as object, entries as object)
         c.title = playlistEntryTitle(e)
         c.shortDescriptionLine1 = playlistEntryCaption(e)
         artId = playlistEntryArtId(e)
-        c.hdPosterUrl = uiArtUrl(artId, "poster")
-        if e.collectionId <> invalid then c.hdPosterUrl = uiCollectionArtUrl(artId, "poster")
+        c.hdPosterUrl = m.global.server + playlistEntryArtPath(e)
         glyph = "movie"
         if e.collectionId <> invalid then glyph = "collection"
         if e.song <> invalid then glyph = "album"

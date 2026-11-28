@@ -48,14 +48,16 @@ function stationLines(kind as string, onAir as object) as object
 end function
 
 ' The artwork a tile shows, of what is on else what is next, as { id,
-' kind } for uiArtUrl; invalid when neither, for the plain named tile.
+' path }, id coloring its placeholder; invalid when neither, for the plain
+' named tile.
 function stationArt(onAir as object) as dynamic
     p = onAir.now
     if p = invalid then p = onAir["next"]
     if p = invalid then return invalid
-    if p.song <> invalid then return { id: p.song.albumId, kind: "poster" }
-    if p.kind = "movie" then return { id: p.itemId, kind: "backdrop" }
-    return { id: p.itemId, kind: "poster" }
+    if p.song <> invalid then return { id: p.song.albumId, path: apiArtPath(p.song, "posterUrl", "getItemArtwork", { itemId: p.song.albumId, kind: "poster" }) }
+    kind = "poster"
+    if p.kind = "movie" then kind = "backdrop"
+    return { id: p.itemId, path: apiArtPath(p.item, kind + "Url", "getItemArtwork", { itemId: p.itemId, kind: kind }) }
 end function
 
 ' What a tune-in answer, { stream, onAir, resumesAt }, means at nowSeconds:

@@ -35,6 +35,19 @@ sub testEntryArtIsTheItemsExceptASongsAlbum()
     assertEqual(playlistEntryArtId({ itemId: uid(8), kind: "song", song: { albumId: uid(3) } }), uid(3))
 end sub
 
+sub testEntryArtIsWhatItsKindNamesCarries()
+    assertEqual(playlistEntryArtPath({ itemId: uid(7), kind: "season", item: { id: uid(7), posterUrl: "/api/v2/artwork/w500/s.jpg" }, show: { id: uid(6), posterUrl: "/api/v2/artwork/w500/x.jpg" } }), "/api/v2/artwork/w500/s.jpg")
+    assertEqual(playlistEntryArtPath({ itemId: uid(8), kind: "song", song: { albumId: uid(3), posterUrl: "/api/v2/artwork/caa/a.jpg" } }), "/api/v2/artwork/caa/a.jpg")
+    assertEqual(playlistEntryArtPath({ itemId: uid(9), kind: "artist", artist: { id: uid(9), posterUrl: "/api/v2/artwork/music/r.jpg" } }), "/api/v2/artwork/music/r.jpg")
+    assertEqual(playlistEntryArtPath({ collectionId: uid(12), kind: "collection", collection: { id: uid(12), posterUrl: "/api/v2/artwork/w500/c.jpg" } }), "/api/v2/artwork/w500/c.jpg")
+end sub
+
+sub testEntryArtWithoutTheFieldIsTheIdAddress()
+    assertEqual(playlistEntryArtPath({ itemId: uid(7), kind: "show", item: { id: uid(7) } }), "/api/v2/items/" + uid(7) + "/artwork/poster")
+    assertEqual(playlistEntryArtPath({ itemId: uid(8), kind: "song", song: { albumId: uid(3) } }), "/api/v2/items/" + uid(3) + "/artwork/poster", "a song's album")
+    assertEqual(playlistEntryArtPath({ collectionId: uid(12), kind: "collection", collection: { id: uid(12) } }), "/api/v2/collections/" + uid(12) + "/artwork/poster")
+end sub
+
 sub testPlayOrderStartsAtAnEntrysFirstRow()
     rows = [
         { entryId: 1, itemId: 11, kind: "episode", item: { id: 11 } }

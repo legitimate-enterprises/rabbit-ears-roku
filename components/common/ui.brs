@@ -147,7 +147,7 @@ end function
 ' overrides the item's own artwork, as a collection's; glyph names the
 ' kind of what it shows when the item has no kind of its own.
 function uiArt(parent as object, item as object, kind as string, x as integer, y as integer, w as integer, h as integer, url = "" as string, glyph = "" as string) as object
-    if url = "" then url = uiArtUrl(item.id, kind)
+    if url = "" then url = uiArtUrl(item, kind)
     if glyph = "" and item.DoesExist("kind") then glyph = item.kind
     g = parent.CreateChild("Group")
     g.translation = [x, y]
@@ -234,21 +234,25 @@ function uiRound(parent as object, itemId as string, x as integer, y as integer,
     if color = "" then color = uiArtColor(itemId)
     uiImage(g, "disc.png", 0, 0, d, d, color)
     uiGlyph(g, glyph, d, d)
-    if url = invalid then url = uiArtUrl(itemId, "poster")
+    if url = invalid then url = uiArtUrl({ id: itemId }, "poster")
     uiArtPoster(g, d, d, url)
     return g
 end function
 
-function uiPersonArtUrl(personId as string) as string
-    return m.global.server + apiRequest("getPersonArtwork", { personId: personId }).path
+' The image a person's or credit's headshotUrl names.
+function uiPersonArtUrl(person as object, personId as string) as string
+    return m.global.server + apiArtPath(person, "headshotUrl", "getPersonArtwork", { personId: personId })
 end function
 
-function uiArtUrl(itemId as string, kind as string) as string
-    return m.global.server + apiRequest("getItemArtwork", { itemId: itemId, kind: kind }).path
+' The image an object's posterUrl or backdropUrl names, by kind. itemId
+' names the item whose image it is when that is not the object's own id.
+function uiArtUrl(obj as dynamic, kind as string, itemId = invalid as dynamic) as string
+    if itemId = invalid then itemId = obj.id
+    return m.global.server + apiArtPath(obj, kind + "Url", "getItemArtwork", { itemId: itemId, kind: kind })
 end function
 
-function uiCollectionArtUrl(collectionId as string, kind as string) as string
-    return m.global.server + apiRequest("getCollectionArtwork", { collectionId: collectionId, kind: kind }).path
+function uiCollectionArtUrl(collection as object, kind as string) as string
+    return m.global.server + apiArtPath(collection, kind + "Url", "getCollectionArtwork", { collectionId: collection.id, kind: kind })
 end function
 
 ' The boards' "N new" marker, its right edge at `right`.

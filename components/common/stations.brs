@@ -15,7 +15,7 @@ function stationTile(s as object, w as integer, h as integer, homeRow = false as
     if s.imageUrl <> invalid
         c.hdPosterUrl = m.global.server + s.imageUrl
     else if art <> invalid
-        c.hdPosterUrl = uiArtUrl(art.id, art.kind)
+        c.hdPosterUrl = m.global.server + art.path
         colorId = art.id
     end if
     c.addFields({ itemId: colorId, artWidth: w, artHeight: h, badge: "", plain: c.hdPosterUrl = "", glyph: s.kind })

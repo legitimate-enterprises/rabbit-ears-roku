@@ -83,9 +83,9 @@ sub show(sections as object)
             c.addFields({ itemId: x.id, artWidth: w, artHeight: h, badge: "", glyph: s.kind, round: s.kind = "artists" or s.kind = "channels" or s.kind = "people" })
             art = x.id
             if s.kind = "songs" then art = x.albumId
-            c.hdPosterUrl = uiArtUrl(art, "poster")
+            c.hdPosterUrl = uiArtUrl(x, "poster", art)
             if s.kind = "people"
-                c.hdPosterUrl = uiPersonArtUrl(x.id)
+                c.hdPosterUrl = uiPersonArtUrl(x, x.id)
                 c.addFields({ tint: formatPersonColor(x.id) })
                 c.title = x.name
             else if s.kind = "artists"

@@ -155,6 +155,15 @@ function apiRequest(name as string, params = {} as object, query = {} as object,
     return { method: op[0], path: "/api/v2" + path, body: text }
 end function
 
+' The server-relative address of an image that obj's key names, as an
+' item's posterUrl. Without the key, as in a reply from a server before
+' 0.24.0 or one kept from before the upgrade, it is the id address op and
+' params name, which misses, leaving the placeholder, when there is no image.
+function apiArtPath(obj as dynamic, key as string, op as string, params as object) as string
+    if obj <> invalid and obj[key] <> invalid then return obj[key]
+    return apiRequest(op, params).path
+end function
+
 ' Every camelCase name the spec gives a property or parameter, keyed in lower
 ' case. A Roku stores a literal's unquoted keys and dot-assigned keys in lower
 ' case, so whatever the app sends is spelled from here; tests/spec.test.mjs

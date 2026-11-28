@@ -65,6 +65,16 @@ function playlistEntryArtId(e as object) as string
     return e.itemId
 end function
 
+' The server-relative address of an entry's art, the posterUrl of the
+' object its kind names.
+function playlistEntryArtPath(e as object) as string
+    id = playlistEntryArtId(e)
+    if e.collectionId <> invalid then return apiArtPath(e.collection, "posterUrl", "getCollectionArtwork", { collectionId: id, kind: "poster" })
+    art = e.item
+    if e.kind = "artist" or e.kind = "album" or e.kind = "song" then art = e[e.kind]
+    return apiArtPath(art, "posterUrl", "getItemArtwork", { itemId: id, kind: "poster" })
+end function
+
 ' What the play order plays, an item or a song per row carrying the row's
 ' editionId, and where an entry's first row sits among them; an unknown or
 ' absent entry starts at the top.

@@ -9,7 +9,7 @@ end sub
 
 sub load()
     p = m.top.params.person
-    uiRound(m.top, p.id, 96, 96, 160, "person", uiPersonArtUrl(p.id), formatPersonColor(p.id))
+    uiRound(m.top, p.id, 96, 96, 160, "person", uiPersonArtUrl(p, p.id), formatPersonColor(p.id))
     name = uiLabel(m.top, p.name, 64, true, "text", 296, 110, 1528)
     name.maxLines = 2
     m.below = 110 + Int(name.boundingRect().height) + 20
@@ -63,7 +63,7 @@ sub addTiles(items as object)
         c.title = itemTitle(item)
         c.shortDescriptionLine1 = formatYear(item)
         if item.kind = "episode" then c.shortDescriptionLine1 = formatEpisodeCode(item)
-        c.hdPosterUrl = uiArtUrl(item.id, "poster")
+        c.hdPosterUrl = uiArtUrl(item, "poster")
         c.addFields({ itemId: item.id, artWidth: m.width, artHeight: Int(m.width * 1.5), badge: "", glyph: item.kind })
         done = libraryResumeFraction({ item: item, state: m.states[item.id.ToStr()], video: false })
         if done <> invalid then c.addFields({ progress: done })

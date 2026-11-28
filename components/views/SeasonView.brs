@@ -62,7 +62,7 @@ sub draw()
         c.title = number + itemTitle(e)
         c.shortDescriptionLine1 = line
         c.description = overviewOf(e)
-        c.hdPosterUrl = uiArtUrl(e.id, "poster")
+        c.hdPosterUrl = uiArtUrl(e, "poster")
         c.addFields({ itemId: e.id, watched: state <> invalid and state.watched })
         done = libraryResumeFraction({ item: e, state: state, video: false })
         if done <> invalid then c.addFields({ progress: done })
