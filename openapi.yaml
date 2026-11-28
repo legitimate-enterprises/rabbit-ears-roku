@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Rabbit Ears API
-  version: 0.23.0
+  version: 0.24.0
   description: |
     REST API of the Rabbit Ears media server. This document's version is the
     server's. A breaking change takes a new path; additive changes bump the
@@ -30,8 +30,8 @@ info:
     row before the server has answered; an id already in use answers 409.
     Ids are opaque: their order is not creation order.
 
-    Every response carries `Artwork-Generation`, the number clients pass as
-    `v` when they ask for an image; see the `v` parameter of getItemArtwork.
+    An image is fetched at the posterUrl, backdropUrl or headshotUrl the
+    data carries; see getArtwork.
   license:
     name: MIT
     identifier: MIT
@@ -1761,6 +1761,56 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /artwork/{store}/{name}:
+    parameters:
+      - name: store
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/ArtworkStore" }
+      - name: name
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,128}\.(jpg|png|webp)$' }
+    get:
+      operationId: getArtwork
+      tags: [items]
+      summary: The image a posterUrl, backdropUrl or headshotUrl names.
+      description: >-
+        An address names one image and never another, so the answer is
+        cached for a year, immutable; when what a title, collection or
+        person shows changes, the data carries a new address. Clients never
+        build one. Any device of the server may fetch any address; which
+        profile is shown an address is decided by the data that carries it.
+      parameters:
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+      responses:
+        "200":
+          description: Image bytes.
+          headers:
+            ETag:
+              required: true
+              schema: { type: string }
+            Cache-Control:
+              required: true
+              schema: { type: string }
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        "304":
+          description: The client's copy, named by If-None-Match, is current.
+          headers:
+            ETag:
+              required: true
+              schema: { type: string }
+            Cache-Control:
+              required: true
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /items/{itemId}/artwork/{kind}:
     parameters:
       - $ref: "#/components/parameters/ItemId"
@@ -1772,8 +1822,11 @@ paths:
       operationId: getItemArtwork
       tags: [items]
       summary: The item's image, or its nearest ancestor's when it has none.
+      deprecated: true
+      description: >-
+        The image Item.posterUrl or backdropUrl names, cached for a day and
+        revalidated; kept because released clients use it.
       parameters:
-        - $ref: "#/components/parameters/ArtworkGeneration"
         - name: If-None-Match
           in: header
           schema: { type: string }
@@ -2307,8 +2360,11 @@ paths:
       operationId: getPersonArtwork
       tags: [people]
       summary: The person's headshot.
+      deprecated: true
+      description: >-
+        The image Person.headshotUrl names, cached for a day and
+        revalidated; kept because released clients use it.
       parameters:
-        - $ref: "#/components/parameters/ArtworkGeneration"
         - name: If-None-Match
           in: header
           schema: { type: string }
@@ -3739,7 +3795,7 @@ paths:
       tags: [music]
       summary: Artists of Music libraries A to Z by sort name, as the Artists view and CarPlay's Artists tab list them.
       description: |
-        An artist's image is `/items/{id}/artwork/poster`. While a kid is
+        An artist's image is its posterUrl. While a kid is
         active an artist with no song but explicit ones is left out, and
         its counts leave out explicit songs and the albums holding only them.
       parameters:
@@ -3795,7 +3851,7 @@ paths:
       summary: Albums of Music libraries, for the Albums view, Artist details, More by and CarPlay's Albums tab.
       description: |
         Recently added (Home and CarPlay's Recent tab) is `sort=added`. An
-        album's art is `/items/{id}/artwork/poster`. While a kid is active
+        album's art is its posterUrl. While a kid is active
         an album whose every song is explicit is left out, and the counts,
         duration and lossless of the rest cover only their clean songs.
       parameters:
@@ -4005,7 +4061,7 @@ paths:
       summary: Channels of YouTube libraries, for the Channels view and the Channel select.
       description: |
         Every channel folder with videos in the library. A channel's avatar
-        is `/items/{id}/artwork/poster`. While a kid is active only the
+        is its posterUrl. While a kid is active only the
         channels the kid may see are listed: under rating ceilings those
         forKids, on a manual allow list those on it. An adult with
         hideKidsContent is not listed channels forKids.
@@ -4085,7 +4141,7 @@ paths:
         Home's New from your channels is `sort=newest` with
         `unwatched=true`; its Continue watching takes
         `inProgress=true` with `sort=played`. A video's thumbnail is
-        `/items/{id}/artwork/poster`. Only videos of the channels
+        its posterUrl. Only videos of the channels
         listYouTubeChannels lists to the active profile are listed.
       parameters:
         - name: libraryId
@@ -5023,9 +5079,11 @@ paths:
         A TMDB collection's own poster or backdrop. A custom collection, or
         a TMDB one without that image, shows its first movie's, in
         listCollectionMovies order for the active profile. 404 when none
-        has one.
+        has one. The image Collection.posterUrl or backdropUrl names,
+        cached for a day and revalidated; kept because released clients
+        use it.
+      deprecated: true
       parameters:
-        - $ref: "#/components/parameters/ArtworkGeneration"
         - name: If-None-Match
           in: header
           schema: { type: string }
@@ -6180,18 +6238,6 @@ components:
       description: Device token. The `admin` scope requires an admin adult.
 
   parameters:
-    ArtworkGeneration:
-      name: v
-      in: query
-      description: >-
-        The `Artwork-Generation` of the latest response the client has seen.
-        An image asked for with it is the same until the generation moves,
-        which it does once any image has been added, replaced or removed
-        and changes have stopped for a few seconds, so the answer is cached
-        for a year, immutable, and the client asks again only under a new
-        generation. Without it the answer is cached for a day and
-        revalidated. Any value is served the current image.
-      schema: { type: integer, format: int64, minimum: 0 }
     LogLevel:
       name: level
       in: query
@@ -7383,6 +7429,21 @@ components:
         kidsContentOverride:
           type: boolean
           description: Movies and shows only. An adult's setKidsContent; absent when none is set and the rating decides.
+        posterUrl:
+          type: string
+          description: >-
+            Server-relative URL of the poster the item shows, served by
+            getArtwork; it changes exactly when the image does. It is the
+            item's own under the metadata settings, else its nearest
+            ancestor's: a season's or episode's show, a song's album, a
+            video's channel. An artist's is its newest album's that the
+            active profile may hear. Absent when there is none.
+        backdropUrl:
+          type: string
+          description: >-
+            Server-relative URL of the backdrop the item shows, served by
+            getArtwork, chosen as posterUrl is; an artist has none. Absent
+            when there is none.
 
     # Bulk actions on a selection.
     WatchStateBatchInput:
@@ -7678,6 +7739,7 @@ components:
         name: { type: string }
         tmdbId: { type: integer, format: int64, description: Absent for people added by hand. }
         profilePath: { type: string, description: "Provider headshot name; present when the artwork endpoint has an image." }
+        headshotUrl: { type: string, description: "Server-relative URL of the person's headshot, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
 
     PersonInput:
       type: object
@@ -7703,6 +7765,7 @@ components:
         personId: { $ref: "#/components/schemas/Id" }
         name: { type: string }
         profilePath: { type: string }
+        headshotUrl: { type: string, description: "Server-relative URL of the person's headshot, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
         character: { type: string, description: Cast only. }
         job: { type: string, description: "Crew only: Director, Writer, Screenplay or Creator." }
         department: { type: string }
@@ -7924,6 +7987,11 @@ components:
       type: string
       description: A poster is portrait, or an episode's still; a backdrop is landscape.
       enum: [poster, backdrop]
+
+    ArtworkStore:
+      type: string
+      description: Part of an address getArtwork serves; clients take addresses whole from the data.
+      enum: [w185, w500, w1280, caa, local, music, youtube]
 
     HdrFormat:
       type: string
@@ -8723,6 +8791,7 @@ components:
           items: { $ref: "#/components/schemas/Genre" }
         musicBrainzId: { type: string, description: The MusicBrainz artist MBID when matched. }
         addedAt: { type: string, format: date-time }
+        posterUrl: { type: string, description: "Server-relative URL of the artist's image, served by getArtwork; it changes exactly when the image does. It is its newest album's that the active profile may hear. Absent when there is none." }
 
     MusicArtistPage:
       type: object
@@ -8754,6 +8823,7 @@ components:
         musicBrainzId: { type: string, description: The MusicBrainz release MBID when matched. }
         lastPlayedAt: { type: string, format: date-time, description: "When the active profile last played one of its songs; absent when never." }
         addedAt: { type: string, format: date-time }
+        posterUrl: { type: string, description: "Server-relative URL of the album's cover, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
 
     MusicAlbumPage:
       type: object
@@ -8792,6 +8862,7 @@ components:
         codec: { type: string, description: "ffprobe name of the file's audio codec, such as flac or mp3." }
         lossless: { type: boolean }
         unavailable: { type: boolean, description: Its file is marked missing (MediaFile.missingAt); startPlayback answers 409. Absent means false. }
+        posterUrl: { type: string, description: "Server-relative URL of the song's art, its album's, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
 
     MusicSongPage:
       type: object
@@ -8924,6 +8995,7 @@ components:
             for kids and their videos; an adult with hideKidsContent does not
             browse them.
         addedAt: { type: string, format: date-time }
+        posterUrl: { type: string, description: "Server-relative URL of the channel's avatar, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
 
     YouTubeChannelForKidsInput:
       type: object
@@ -8965,6 +9037,7 @@ components:
         sourceUrl: { type: string, description: "The video on YouTube, for Open on YouTube." }
         addedAt: { type: string, format: date-time, description: When a scan first found it. }
         unavailable: { type: boolean, description: Its file is marked missing (MediaFile.missingAt); startPlayback answers 409. Absent means false. }
+        posterUrl: { type: string, description: "Server-relative URL of the video's thumbnail, else its channel's avatar, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
 
     YouTubeVideoPage:
       type: object
@@ -9011,6 +9084,7 @@ components:
         durationMs: { type: integer, format: int64, description: "The play order's rows' edition runtimes added up." }
         artItemId: { $ref: "#/components/schemas/Id", description: "The item whose poster stands for the playlist: the item of its first entry the active profile may see, which may be a show, season, artist or album, or for a collection its first such movie." }
         lastPlayedAt: { type: string, format: date-time, description: When playback last started with this playlistId. }
+        posterUrl: { type: string, description: "Server-relative URL of artItemId's poster, as that item's posterUrl, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
         imageUrl:
           type: string
           description: >-
@@ -9185,10 +9259,8 @@ components:
         with show for a season or episode; artist, album or song for music;
         collection for a collection. The row's title is
         item.metadata.title else item.parsedTitle, artist.name,
-        album.title, song.title or collection.name; its art is
-        /items/{itemId}/artwork/poster, a song's
-        /items/{song.albumId}/artwork/poster, a collection's
-        /collections/{collectionId}/artwork/poster.
+        album.title, song.title or collection.name; its art is that
+        object's posterUrl.
       required: [id, playlistId, position, kind, itemCount, durationMs, addedAt, createdAt, modifiedAt]
       properties:
         id: { $ref: "#/components/schemas/Id" }
@@ -9306,6 +9378,8 @@ components:
         tmdbId: { type: integer, format: int64, description: The TMDB collection id; absent for custom. }
         movieCount: { type: integer, minimum: 0, description: Its movies the active profile may see. }
         customOrder: { type: boolean, description: "True while a custom collection's movies are in a hand order, set by replaceCollectionMoviePosition; false for release order, and always for TMDB. Always sent; optional so a copy a client stored before the field existed still reads." }
+        posterUrl: { type: string, description: "Server-relative URL of the collection's poster: its own TMDB image, else its first movie's in listCollectionMovies order for the active profile, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
+        backdropUrl: { type: string, description: "Server-relative URL of the collection's backdrop, as posterUrl, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
         createdAt: { type: string, format: date-time }
         modifiedAt: { type: string, format: date-time }
         createdBy: { $ref: "#/components/schemas/Id", description: "The profile that created it; absent when none did, as for what the server made, or when that profile is gone." }
