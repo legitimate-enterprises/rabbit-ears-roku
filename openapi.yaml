@@ -793,6 +793,134 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
 
+  /friends:
+    get:
+      operationId: listFriends
+      tags: [profiles]
+      summary: >-
+        The active adult's friends, by name. Friends offer each other as
+        share and Watch together targets off TVs, and are never in each
+        other's households. Kids get 403. `email` and `householdId` are
+        left out.
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Friends.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /friends/{profileId}:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+    delete:
+      operationId: deleteFriend
+      tags: [profiles]
+      summary: Either friend ends a friendship, and the other is not told.
+      description: >-
+        Neither then offers the other as a target anew. What they shared
+        already stays as it is: a playlist shared with the other stays
+        shared until its owner stops sharing it, and a Watch together both
+        are in plays on. One who is not the active adult's friend is 404.
+        Kids get 403.
+      x-replayable: true
+      responses:
+        "204": { description: No longer friends. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /friend-requests:
+    get:
+      operationId: listFriendRequests
+      tags: [profiles]
+      summary: >-
+        The friend requests the active adult received and has not declined,
+        and those they sent, newest first, until each expires. Kids get 403.
+      responses:
+        "200":
+          description: Requests.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FriendRequestList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      operationId: sendFriendRequest
+      tags: [profiles]
+      summary: Asks whoever holds an email to be friends; the answer says nothing of them.
+      description: >-
+        The adult who holds the email, unless it is the sender, receives the
+        request. The answer, and all the sender can later read of the
+        request, is the same whoever holds the email: no one, an adult who
+        has not answered or has declined, a pending or revoked adult, the
+        sender themself, a friend already, or an adult who asked the sender
+        first or ended a friendship with them. The request stays as sent
+        among the sender's until it expires, 30 days on, or the sender
+        withdraws it; it goes early only when accepted. A second request to
+        an email while one is listed answers that one. Emails compare as
+        sign-in compares them, ignoring case and surrounding space. More
+        than 20 requests from one adult within a day answer 429. Kids get
+        403.
+      x-replayable: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FriendRequestInput" }
+      responses:
+        "202":
+          description: If they're on this server, they'll get the request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutgoingFriendRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /friend-requests/{requestId}:
+    parameters:
+      - $ref: "#/components/parameters/FriendRequestId"
+    delete:
+      operationId: deleteFriendRequest
+      tags: [profiles]
+      summary: >-
+        The sender withdraws a request, or the adult asked declines it. A
+        declined request leaves the decliner's list only: nothing the sender
+        reads of it changes. A request the active adult does not list is
+        404. Kids get 403.
+      x-replayable: true
+      responses:
+        "204": { description: Withdrawn or declined. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /friend-requests/{requestId}/accept:
+    parameters:
+      - $ref: "#/components/parameters/FriendRequestId"
+    post:
+      operationId: acceptFriendRequest
+      tags: [profiles]
+      summary: >-
+        The adult asked accepts: the two are friends, and the request goes
+        with any between them the other way. A request the active adult
+        received and lists is the only one they accept (404); a sender no
+        longer to be had, as one revoked, is 409. Kids get 403.
+      responses:
+        "204": { description: Friends. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
   /profiles:
     get:
       operationId: listProfiles
@@ -1259,6 +1387,33 @@ paths:
           schema: { type: string, format: date-time }
       responses:
         "204": { description: Forgotten. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /profiles/{profileId}/watch-state/{itemId}/position:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+      - $ref: "#/components/parameters/ItemId"
+    delete:
+      operationId: dismissWatchState
+      tags: [profiles]
+      summary: Dismiss from in progress, forgetting where to resume.
+      description: >-
+        positionMs becomes 0, so the item is no longer in progress anywhere;
+        watched, playCount, lastPlayedAt and editionId stay. Playing it again
+        starts at the beginning. A state not in progress is left as it is.
+      x-replayable: true
+      parameters:
+        - name: at
+          in: query
+          description: >-
+            When it was dismissed, as a device that was offline knows it; a
+            time ahead of the server's is taken as now. A state that changed
+            later stays, and the answer is still 204.
+          schema: { type: string, format: date-time }
+      responses:
+        "204": { description: Dismissed. }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -6411,6 +6566,11 @@ components:
       in: path
       required: true
       schema: { $ref: "#/components/schemas/Id" }
+    FriendRequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/Id" }
     LinkToken:
       name: token
       in: query
@@ -7089,6 +7249,54 @@ components:
           type: array
           description: Of the device household's profiles; empty for an adult only present there.
           items: { $ref: "#/components/schemas/ProfileOffer" }
+
+    FriendRequestInput:
+      type: object
+      required: [email]
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+          description: >-
+            The new request's id, a UUIDv7 the client chose; absent, the
+            server chooses one. An id already in use answers 409.
+        email: { type: string, format: email }
+
+    OutgoingFriendRequest:
+      type: object
+      description: >-
+        A request the active adult sent, as they sent it. It reads the same
+        whoever holds the email, so it says nothing of them.
+      required: [id, email, createdAt, expiresAt]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        email: { type: string, description: "As the sender wrote it, less surrounding space." }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+
+    IncomingFriendRequest:
+      type: object
+      description: A request to the active adult from another.
+      required: [id, fromProfileId, fromName, fromColor, createdAt, expiresAt]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        fromProfileId: { $ref: "#/components/schemas/Id" }
+        fromName: { type: string }
+        fromColor: { $ref: "#/components/schemas/ProfileColor" }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+
+    FriendRequestList:
+      type: object
+      required: [incoming, outgoing]
+      properties:
+        incoming:
+          type: array
+          description: To the active adult, those they declined left out.
+          items: { $ref: "#/components/schemas/IncomingFriendRequest" }
+        outgoing:
+          type: array
+          description: From the active adult.
+          items: { $ref: "#/components/schemas/OutgoingFriendRequest" }
 
     AdultLink:
       type: object
