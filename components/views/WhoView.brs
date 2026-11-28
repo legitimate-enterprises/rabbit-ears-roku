@@ -162,13 +162,6 @@ sub onMe(event as object)
     m.top.navigate = { to: "TabsView" }
 end sub
 
-sub onSignedOut()
-    sessionClear()
-    m.global.me = {}
-    m.global.locked = false
-    m.top.navigate = { to: "SignInView" }
-end sub
-
 sub onSelect(id as string)
     if id = "switch"
         netCall("signOut", {}, {}, invalid, "onSignedOut")

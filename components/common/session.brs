@@ -26,6 +26,15 @@ sub sessionClear()
     cacheClear("cachefs:/")
 end sub
 
+' The signOut call's answer, in a view: whatever it was, this device signs in
+' anew.
+sub onSignedOut()
+    sessionClear()
+    m.global.me = {}
+    m.global.locked = false
+    m.top.navigate = { to: "SignInView" }
+end sub
+
 ' Posters and the Video node share the scene's HTTP agent, so artwork
 ' requests carry the token. Another server has yet to answer discovery
 ' or say its name.

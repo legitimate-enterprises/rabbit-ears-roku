@@ -141,43 +141,57 @@ sub onFocus()
     if m.onBar then focusBar() else focusPage()
 end sub
 
-' An adult's profile menu: Switch profile, the profile's Hide kids' content,
-' and this device's Remember profile with Skip PIN under it.
 sub openProfile()
-    s = rememberRead(m.global.me)
-    options = [{ label: "Switch profile", checked: false, disabled: false }]
-    options.Push({ label: "Hide kids' content", detail: "Leave kids' titles out of what you browse", checked: libraryHides(m.global.me.profiles, m.profile.id), disabled: false })
-    options.Push({ label: "Remember profile", detail: "Start as the last profile, not Who's watching", checked: s.remember, disabled: false })
-    if s.remember then options.Push({ label: "Skip PIN", detail: "Start without asking for its PIN", checked: s.skipPin, disabled: false })
+    m.prefs = false
+    options = []
+    for each label in profileMenu(m.profile.kind = "adult")
+        options.Push({ label: label, checked: false, disabled: false })
+    end for
+    showMenu(m.profile.name, options)
+end sub
+
+' Back from Preferences returns to the profile menu.
+sub openPreferences()
+    m.prefs = true
+    showMenu("Preferences", profilePreferences(libraryHides(m.global.me.profiles, m.profile.id), rememberRead(m.global.me)))
+end sub
+
+sub showMenu(heading as string, options as object)
     if m.menu = invalid
         m.menu = m.top.CreateChild("OptionMenu")
-        m.menu.heading = m.profile.name
         m.menu.translation = [1920 - 96 - 660, 130]
         m.menu.observeFieldScoped("chosen", "onProfileChosen")
-        m.menu.observeFieldScoped("cancelled", "closeMenu")
+        m.menu.observeFieldScoped("cancelled", "onMenuCancelled")
     end if
+    m.menu.heading = heading
     m.menu.options = options
     m.menu.setFocus(true)
 end sub
 
+sub onMenuCancelled()
+    if m.prefs then openProfile() else closeMenu()
+end sub
+
 sub onProfileChosen(event as object)
-    i = event.getData()
-    if i = 0
+    label = m.menu.options[event.getData()].label
+    if label = "Switch profile"
         closeMenu()
         m.top.navigate = { to: "WhoView" }
-        return
-    end if
-    if i = 1
+    else if label = "Preferences"
+        openPreferences()
+    else if label = "Sign out"
+        netCall("signOut", {}, {}, invalid, "onSignedOut")
+    else if label = "Hide kids' content"
         m.hide = not libraryHides(m.global.me.profiles, m.profile.id)
         body = {}
         body.AddReplace("hideKidsContent", m.hide)
         netCall("setProfilePreferences", { profileId: m.profile.id }, {}, body, "onHideSaved")
-        return
+    else
+        s = rememberRead(m.global.me)
+        if label = "Remember profile" then s.remember = not s.remember else s.skipPin = not s.skipPin
+        rememberSave(m.global.me, s)
+        openPreferences()
     end if
-    s = rememberRead(m.global.me)
-    if i = 2 then s.remember = not s.remember else s.skipPin = not s.skipPin
-    rememberSave(m.global.me, s)
-    openProfile()
 end sub
 
 ' The profile keeps the choice, and every tab loads again as the server now
@@ -203,7 +217,8 @@ sub onHideChanged()
     end for
     m.views = {}
     show(m.tab)
-    if m.menu <> invalid then openProfile()
+    if m.menu = invalid then return
+    if m.prefs then openPreferences() else openProfile()
 end sub
 
 sub closeMenu()
@@ -222,11 +237,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
         else if key = "down" or (key = "OK" and m.barIndex < m.tabs.Count())
             focusPage()
             return true
-        else if key = "OK" and m.profile.kind = "adult"
-            openProfile()
-            return true
         else if key = "OK"
-            m.top.navigate = { to: "WhoView" }
+            openProfile()
             return true
         else if key = "back" and m.tab <> 0
             show(0)

@@ -12,6 +12,7 @@
     <script type="text/brightscript" uri="pkg:/components/common/session.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
+    <script type="text/brightscript" uri="pkg:/components/lib/profile.brs" />
     <script type="text/brightscript" uri="pkg:/components/common/device.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/capabilities.brs" />
     <interface>
