@@ -1116,6 +1116,74 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /profiles/{profileId}/favorites:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+      - $ref: "#/components/parameters/Limit"
+      - $ref: "#/components/parameters/Offset"
+    get:
+      operationId: listFavorites
+      tags: [profiles]
+      summary: The profile's favorites, most recently favorited first, then by item id.
+      description: >-
+        Only items the profile browses: a favorite hidden from it, as by a
+        kid's ceilings, is kept and listed again once it may be seen. An
+        adult with hideKidsContent is not listed kids' content
+        (Item.kidsContent, YouTubeChannel.forKids).
+      parameters:
+        - name: kind
+          in: query
+          schema: { $ref: "#/components/schemas/FavoriteKind" }
+      responses:
+        "200":
+          description: Favorites.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FavoritePage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /profiles/{profileId}/favorites/{itemId}:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+      - $ref: "#/components/parameters/ItemId"
+    put:
+      operationId: putFavorite
+      tags: [profiles]
+      summary: Favorite an item of a FavoriteKind the profile may see.
+      x-replayable: true
+      parameters:
+        - name: at
+          in: query
+          description: >-
+            When it was favorited, as a device that was offline knows it;
+            absent is now, and a time ahead of the server's is taken as now.
+            An item already a favorite keeps its createdAt.
+          schema: { type: string, format: date-time }
+      responses:
+        "204": { description: Favorited; idempotent. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteFavorite
+      tags: [profiles]
+      x-replayable: true
+      parameters:
+        - name: at
+          in: query
+          description: >-
+            When it was unfavorited, as a device that was offline knows it; a
+            time ahead of the server's is taken as now. A favorite made later
+            stays, and the answer is still 204.
+          schema: { type: string, format: date-time }
+      responses:
+        "204": { description: "Removed; idempotent, also for an item that is gone or hidden." }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /profiles/{profileId}/watch-state:
     parameters:
       - $ref: "#/components/parameters/ProfileId"
@@ -6916,6 +6984,28 @@ components:
         itemIds:
           type: array
           items: { $ref: "#/components/schemas/Id" }
+
+    FavoriteKind:
+      type: string
+      description: The kinds of item a profile favorites.
+      enum: [movie, show, season, episode, artist, album, song, video]
+
+    Favorite:
+      type: object
+      required: [itemId, kind, createdAt]
+      properties:
+        itemId: { $ref: "#/components/schemas/Id" }
+        kind: { $ref: "#/components/schemas/FavoriteKind" }
+        createdAt: { type: string, format: date-time, description: When the profile favorited it. }
+
+    FavoritePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Favorite" }
+        nextOffset: { type: integer }
 
     AllowedFor:
       type: object
