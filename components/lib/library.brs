@@ -301,7 +301,7 @@ end function
 ' with them. Stations keeps the grid's filters, which choose the library
 ' again.
 function libraryBar(screen as string, adult as boolean, chip as string) as object
-    chips = [{ id: "all", text: "All" }, { id: "unwatched", text: "Unwatched" }, { id: "progress", text: "In progress" }]
+    chips = [{ id: "all", text: "All" }, { id: "unwatched", text: "Unwatched" }, { id: "progress", text: "In progress" }, { id: "favorites", text: "Favorites" }]
     if adult then chips.Push({ id: "kids", text: "Kids" })
     if screen = "music"
         views = [{ id: "albums", text: "Albums" }, { id: "artists", text: "Artists" }, { id: "songs", text: "Songs" }]
@@ -325,15 +325,18 @@ function libraryBar(screen as string, adult as boolean, chip as string) as objec
     return { views: views, view: view, chips: chips }
 end function
 
-' The grid's chips: "all", "unwatched", "progress" or "kids". Kids keeps what
-' the server marks kidsContent, a title's override or its rating.
-function libraryFilter(items as object, chip as string, states as object, progress as object) as object
+' The grid's chips: "all", "unwatched", "progress", "favorites" or "kids".
+' Favorites keeps the ids in favorites, as libraryFavoriteIds gives them;
+' Kids keeps what the server marks kidsContent, a title's override or its
+' rating.
+function libraryFilter(items as object, chip as string, states as object, progress as object, favorites = {} as object) as object
     out = []
     for each item in items
         keep = (chip = "all")
         if chip = "unwatched" then keep = libraryStanding(item, states, progress).unwatched > 0
         if chip = "progress" then keep = libraryStanding(item, states, progress).inProgress
         if chip = "kids" then keep = item.kidsContent = true
+        if chip = "favorites" then keep = favorites.DoesExist(item.id.ToStr())
         if keep then out.Push(item)
     end for
     return out

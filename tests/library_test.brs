@@ -265,13 +265,13 @@ sub testBarSplitsViewTabsFromFilterChips()
     movies = libraryBar("movie", true, "unwatched")
     assertEqual(texts(movies.views), ["Movies", "Collections", "Playlists", "Stations"])
     assertEqual(ids(movies.views), ["library", "collections", "playlists", "stations"])
-    assertEqual([movies.view, texts(movies.chips)], ["library", ["All", "Unwatched", "In progress", "Kids"]], "a filter is the library's view")
-    assertEqual(ids(movies.chips), ["all", "unwatched", "progress", "kids"])
+    assertEqual([movies.view, texts(movies.chips)], ["library", ["All", "Unwatched", "In progress", "Favorites", "Kids"]], "a filter is the library's view")
+    assertEqual(ids(movies.chips), ["all", "unwatched", "progress", "favorites", "kids"])
     kid = libraryBar("movie", false, "all")
-    assertEqual([texts(kid.views), ids(kid.chips)], [["Movies", "Collections", "Playlists", "Stations"], ["all", "unwatched", "progress"]], "shared playlists but no Kids for a kid")
+    assertEqual([texts(kid.views), ids(kid.chips)], [["Movies", "Collections", "Playlists", "Stations"], ["all", "unwatched", "progress", "favorites"]], "shared playlists and Favorites but no Kids for a kid")
     shows = libraryBar("show", true, "stations")
     assertEqual([texts(shows.views), shows.view], [["Shows", "Playlists", "Stations"], "stations"])
-    assertEqual(ids(shows.chips), ["all", "unwatched", "progress", "kids"], "stations keeps the grid's filters")
+    assertEqual(ids(shows.chips), ["all", "unwatched", "progress", "favorites", "kids"], "stations keeps the grid's filters")
     assertEqual(libraryBar("movie", true, "collections").chips, [], "nothing filters collections")
     assertEqual(libraryBar("show", true, "playlists").chips, [], "nothing filters playlists")
 end sub
@@ -611,3 +611,11 @@ function titled(sections as object) as object
     end for
     return out
 end function
+
+sub testFavoritesChipKeepsTheProfilesFavorites()
+    movies = [{ id: uid(1), kind: "movie" }, { id: uid(2), kind: "movie" }, { id: uid(3), kind: "movie" }]
+    favorites = libraryFavoriteIds([{ itemId: uid(3), kind: "movie", createdAt: "2026-01-02T00:00:00Z" }, { itemId: uid(1), kind: "movie", createdAt: "2026-01-01T00:00:00Z" }])
+    assertEqual(ids(libraryFilter(movies, "favorites", {}, {}, favorites)), [uid(1), uid(3)], "the grid's own order")
+    assertEqual(ids(libraryFilter(movies, "favorites", {}, {})), [], "none without favorites")
+    assertEqual(ids(libraryFilter(movies, "all", {}, {}, favorites)).Count(), 3)
+end sub

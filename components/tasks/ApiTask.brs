@@ -396,7 +396,10 @@ function loadGrid(a as object) as object
     if not items.ok then return items
     states = statesById(a.profileId)
     if not states.ok then return states
-    data = { items: items.data, states: states.data, progress: {}, genres: [], genreIds: invalid }
+    data = { items: items.data, states: states.data, progress: {}, genres: [], genreIds: invalid, favorites: {} }
+    ' Favorites only fill their chip; failing them leaves it empty.
+    favorites = sendAll("listFavorites", { profileId: a.profileId }, { kind: a.kind })
+    if favorites.ok then data.favorites = libraryFavoriteIds(favorites.data)
     if a.genreId <> invalid
         ids = loadGenre(a)
         if not ids.ok then return ids

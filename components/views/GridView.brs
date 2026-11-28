@@ -17,7 +17,7 @@ sub init()
     m.kidsOnly = false
     m.grid = invalid
     m.listed = ""
-    m.data = { states: {}, progress: {}, genres: [] }
+    m.data = { states: {}, progress: {}, genres: [], favorites: {} }
 end sub
 
 sub onParams()
@@ -173,7 +173,7 @@ sub fill()
     end if
     makeGrid(false)
     m.listed = ""
-    list = libraryFilter(m.all, m.chip, m.data.states, m.data.progress)
+    list = libraryFilter(m.all, m.chip, m.data.states, m.data.progress, m.data.favorites)
     if m.genreIds <> invalid
         kept = []
         for each item in list
