@@ -24,6 +24,7 @@ function apiOperations() as object
         listShowProgress: ["GET", "/profiles/{profileId}/show-progress"]
         getWatchState: ["GET", "/profiles/{profileId}/watch-state/{itemId}"]
         putWatchState: ["PUT", "/profiles/{profileId}/watch-state/{itemId}"]
+        dismissWatchState: ["DELETE", "/profiles/{profileId}/watch-state/{itemId}/position"]
         putWatchStates: ["PUT", "/profiles/{profileId}/watch-state/batch"]
         search: ["GET", "/search"]
         listItems: ["GET", "/items"]

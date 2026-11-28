@@ -68,7 +68,9 @@ sub redraw()
     row.Push(m.controls.watched)
     m.layout[0].Push("watched")
     m.favorite = m.d.favorite
-    extra = togetherRow(row, x, y + 62, 1000, [favoriteControl(m.top)])
+    after = dismissButtons(v)
+    after.Push(favoriteControl(m.top))
+    extra = togetherRow(row, x, y + 62, 1000, after)
     y = y + 178 + extra
     if v.overview <> invalid
         l = uiLabel(m.top, v.overview, 28, false, "sub", x, y, 1000)
@@ -144,6 +146,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
         togetherPlay(0)
     else if key = "OK" and togetherSelect(m.current)
         return true
+    else if key = "OK" and m.current = "dismiss"
+        dismiss(v)
     else if key = "OK" and m.current = "favorite"
         favoriteToggle("video", v.id)
     else if key = "OK" and m.current = "watched"

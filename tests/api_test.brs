@@ -261,3 +261,18 @@ sub testRequestSpellsNamesAsTheSpec()
     assertTrue(Instr(1, r.body, """videoCodecs""") > 0, r.body)
     assertTrue(Instr(1, r.body, """audioTrackId"":1") > 0, r.body)
 end sub
+
+sub testDismissDeletesThePositionAndSendsNothingElse()
+    r = apiRequest("dismissWatchState", { profileId: uid(1), itemId: uid(2) })
+    assertEqual([r.method, r.path, r.body], ["DELETE", "/api/v2/profiles/" + uid(1) + "/watch-state/" + uid(2) + "/position", ""])
+end sub
+
+sub testDismissedTitleIsNotInProgressButKeepsItsHistory()
+    state = { watched: true, positionMs: 90000, playCount: 2, lastPlayedAt: "2026-11-01T00:00:00Z" }
+    assertTrue(libraryInProgress(state), "in progress while there is a position")
+    assertTrue(libraryResumes(state, invalid))
+    state.positionMs = 0
+    assertTrue(not libraryInProgress(state), "dismissed")
+    assertTrue(not libraryResumes(state, invalid), "Play, not Resume")
+    assertTrue(not libraryInProgress(invalid), "no state")
+end sub

@@ -9,6 +9,7 @@
     <script type="text/brightscript" uri="pkg:/components/common/net.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/favorite.brs" />
     <script type="text/brightscript" uri="pkg:/components/common/favorite.brs" />
+    <script type="text/brightscript" uri="pkg:/components/common/dismiss.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/format.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/library.brs" />
     <script type="text/brightscript" uri="pkg:/components/lib/quality.brs" />
