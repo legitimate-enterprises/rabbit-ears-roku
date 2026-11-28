@@ -566,3 +566,8 @@ function libraryQueueNext(rows as object) as dynamic
     end for
     return { item: rows[0], title: rows[0].title, queue: rest, shuffle: true, positionMs: 0 }
 end function
+
+' The server-relative address of a YouTubeVideo's channel's avatar.
+function libraryChannelArtPath(v as object) as string
+    return apiArtPath(v, "channelPosterUrl", "getItemArtwork", { itemId: v.channelId, kind: "poster" })
+end function

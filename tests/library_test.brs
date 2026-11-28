@@ -567,3 +567,10 @@ sub testAShuffledQueuePlaysEachRowFromItsStartToTheEnd()
     assertEqual(n.queue, [], "the last row")
     assertEqual(libraryQueueNext(n.queue), invalid, "nothing after it")
 end sub
+
+sub testChannelArtIsTheVideosChannelPosterUrl()
+    v = { id: uid(5), channelId: uid(2), posterUrl: "/api/v2/artwork/youtube/t.jpg", channelPosterUrl: "/api/v2/artwork/youtube/c.jpg" }
+    assertEqual(libraryChannelArtPath(v), "/api/v2/artwork/youtube/c.jpg")
+    v.Delete("channelPosterUrl")
+    assertEqual(libraryChannelArtPath(v), "/api/v2/items/" + uid(2) + "/artwork/poster", "a reply without the field")
+end sub

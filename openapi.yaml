@@ -9038,6 +9038,7 @@ components:
         addedAt: { type: string, format: date-time, description: When a scan first found it. }
         unavailable: { type: boolean, description: Its file is marked missing (MediaFile.missingAt); startPlayback answers 409. Absent means false. }
         posterUrl: { type: string, description: "Server-relative URL of the video's thumbnail, else its channel's avatar, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
+        channelPosterUrl: { type: string, description: "Server-relative URL of the channel's poster, as that channel's posterUrl, served by getArtwork; it changes exactly when the image does. Absent when there is none." }
 
     YouTubeVideoPage:
       type: object

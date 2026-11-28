@@ -175,7 +175,7 @@ function apiNames() as object
         "accountId", "activeProfileId", "activeTranscodes", "addedAt", "adultId", "albumArtistId"
         "albumCount", "albumId", "albumTitle", "artItemId", "artistId", "artistName", "audioAction"
         "audioCodec", "audioCodecs", "audioRoute", "audioTrackId", "avatarUrl", "backdropPath", "backdropUrl"
-        "badReason", "bifUrl", "bitDepth", "bufferGoalSeconds", "bufferMs", "channelId", "channelLayout", "channelTitle"
+        "badReason", "bifUrl", "bitDepth", "bufferGoalSeconds", "bufferMs", "channelId", "channelLayout", "channelPosterUrl", "channelTitle"
         "checkId", "clientId", "clientSecret", "clientSecretSet", "collectionId", "colorPrimaries"
         "colorTransfer", "contentRating", "conversionId", "cpuModel", "cpuPercent", "createdAt", "currentEntry"
         "currentPassword", "currentRung", "dataDir", "databasePath", "decidedAt", "deviceId", "deviceName"

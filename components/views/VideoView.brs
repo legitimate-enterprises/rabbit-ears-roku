@@ -48,7 +48,7 @@ sub redraw()
     still = uiArt(m.top, v, "poster", 96, 96, 640, 360, "", "video")
     uiProgress(still, 0, 354, 640, libraryResumeFraction({ item: v, state: v, video: true }))
     x = 792
-    uiRound(m.top, v.channelId, x, 96, 36, "channel")
+    uiRound(m.top, v.channelId, x, 96, 36, "channel", m.global.server + libraryChannelArtPath(v))
     uiLabel(m.top, v.channelTitle, 28, true, "accent", x + 48, 98)
     title = uiLabel(m.top, v.title, 68, true, "text", x, 140, 1032)
     title.maxLines = 2
