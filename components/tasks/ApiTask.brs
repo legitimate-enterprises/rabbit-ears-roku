@@ -61,6 +61,8 @@ sub work()
         result = loadSong(a)
     else if r.load = "station"
         result = loadStation(a)
+    else if r.load = "favorites"
+        result = loadFavorites(a)
     else
         result = loadItem(a)
     end if
@@ -781,6 +783,54 @@ function loadVideo(a as object) as object
         end for
     end if
     return done(d)
+end function
+
+' The Favorites tab: listFavorites' rows, their items keyed by id, each
+' by its own kind's operation, and the profile's watch states for resume
+' bars. A season or episode carries its show's title as showTitle, which
+' an Item lacks. An item that fails, as one gone or hidden since, is left
+' out.
+' shortcut: one request per item, as the API lists favorites by id only;
+' each kind stops at its 50 most recent, until the API answers items.
+function loadFavorites(a as object) as object
+    r = sendAll("listFavorites", { profileId: a.profileId }, {})
+    if not r.ok then return r
+    ops = { artist: ["getMusicArtist", "artistId"], album: ["getMusicAlbum", "albumId"], song: ["getMusicSong", "songId"], video: ["getYouTubeVideo", "videoId"] }
+    items = {}
+    counts = {}
+    shows = {}
+    for each f in r.data
+        n = 0
+        if counts[f.kind] <> invalid then n = counts[f.kind]
+        counts[f.kind] = n + 1
+        if n < 50
+            op = ops[f.kind]
+            if op = invalid then op = ["getItem", "itemId"]
+            params = {}
+            params.AddReplace(op[1], f.itemId)
+            item = send(op[0], params)
+            if item.ok and (f.kind = "season" or f.kind = "episode") then item = withShowTitle(item, shows)
+            if item.ok then items[f.itemId.ToStr()] = item.data
+        end if
+    end for
+    return done({ favorites: r.data, items: items, states: decorStates(a.profileId) })
+end function
+
+' item, a getItem result for a season or episode, with its show's title;
+' shows keeps the titles found, keyed by season id.
+function withShowTitle(item as object, shows as object) as object
+    seasonId = item.data.id
+    if item.data.kind = "episode" then seasonId = item.data.parentId
+    title = shows[seasonId.ToStr()]
+    if title = invalid
+        show = send("getItem", { itemId: seasonId })
+        if show.ok and show.data.kind = "season" then show = send("getItem", { itemId: show.data.parentId })
+        if not show.ok then return show
+        title = itemTitle(show.data)
+        shows[seasonId.ToStr()] = title
+    end if
+    item.data.AddReplace("showTitle", title)
+    return item
 end function
 
 ' An audio-only session for one song from its start, or from positionMs

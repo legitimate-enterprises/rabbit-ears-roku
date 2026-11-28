@@ -104,6 +104,8 @@ sub show(i as integer)
             v = CreateObject("roSGNode", "HomeView")
         else if key = "Search"
             v = CreateObject("roSGNode", "SearchView")
+        else if key = "Favorites"
+            v = CreateObject("roSGNode", "FavoritesView")
         else if key = "Music" or key = "YouTube"
             v = CreateObject("roSGNode", "MediaView")
             v.params = { kind: LCase(key) }

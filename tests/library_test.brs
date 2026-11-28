@@ -221,12 +221,12 @@ sub testAProfileHidesKidsContentOnlyWhenItsOwnFlagIsOn()
 end sub
 
 sub testEveryTabShowsUntilTheServerHasAnswered()
-    assertEqual(libraryTabs(invalid), ["Home", "TV", "Movies", "Music", "YouTube", "Search"])
+    assertEqual(libraryTabs(invalid), ["Home", "TV", "Movies", "Music", "YouTube", "Favorites", "Search"])
 end sub
 
 sub testTabsFollowTheKindsOfLibraryTheServerHas()
-    assertEqual(libraryTabs(["music", "movies", "movies"]), ["Home", "Movies", "Music", "Search"])
-    assertEqual(libraryTabs([]), ["Home", "Search"], "no library")
+    assertEqual(libraryTabs(["music", "movies", "movies"]), ["Home", "Movies", "Music", "Favorites", "Search"])
+    assertEqual(libraryTabs([]), ["Home", "Favorites", "Search"], "no library")
 end sub
 
 sub testMusicBarHasPlaylistsForAKid()
@@ -574,3 +574,40 @@ sub testChannelArtIsTheVideosChannelPosterUrl()
     v.Delete("channelPosterUrl")
     assertEqual(libraryChannelArtPath(v), "/api/v2/items/" + uid(2) + "/artwork/poster", "a reply without the field")
 end sub
+
+sub testFavoriteSectionsFollowKindOrderMostRecentlyStarredFirst()
+    favorites = []
+    items = {}
+    n = 0
+    ' The server's order, newest first, across kinds.
+    for each k in ["video", "movie", "song", "episode", "album", "movie", "artist", "season", "show"]
+        n = n + 1
+        favorites.Push({ itemId: uid(n), kind: k, createdAt: "2026-01-0" + (10 - n).ToStr() + "T00:00:00Z" })
+        items[uid(n)] = { id: uid(n), kind: k }
+    end for
+    s = libraryFavoriteSections(favorites, items)
+    assertEqual(texts(titled(s)), ["Movies", "Shows", "Seasons", "Episodes", "Artists", "Albums", "Songs", "Videos"])
+    assertEqual(ids(s[0].items), [uid(2), uid(6)], "most recently starred first")
+    kinds = []
+    for each x in s
+        kinds.Push(x.kind)
+    end for
+    assertEqual(kinds, ["movies", "shows", "shows", "shows", "artists", "albums", "songs", "videos"], "Search's tiles")
+end sub
+
+sub testFavoriteSectionsLeaveOutWhatDidNotLoadAndEmptyKinds()
+    favorites = [{ itemId: uid(1), kind: "movie", createdAt: "2026-01-02T00:00:00Z" }, { itemId: uid(2), kind: "album", createdAt: "2026-01-01T00:00:00Z" }]
+    items = {}
+    items[uid(2)] = { id: uid(2) }
+    s = libraryFavoriteSections(favorites, items)
+    assertEqual(texts(titled(s)), ["Albums"], "a movie gone or hidden since")
+    assertEqual(libraryFavoriteSections([], {}), [])
+end sub
+
+function titled(sections as object) as object
+    out = []
+    for each x in sections
+        out.Push({ text: x.title })
+    end for
+    return out
+end function

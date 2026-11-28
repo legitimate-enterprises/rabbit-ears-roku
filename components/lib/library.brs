@@ -273,14 +273,16 @@ function libraryStanding(item as object, states as object, progress as object) a
     return out
 end function
 
-' The browse tabs: Home and Search always, and each of TV, Movies, Music and
-' YouTube when kinds, the kinds of the server's libraries, has its own; every
-' one while kinds is invalid, as before the server has answered.
+' The browse tabs: Home, Favorites and Search always, and each of TV,
+' Movies, Music and YouTube when kinds, the kinds of the server's libraries,
+' has its own; every one while kinds is invalid, as before the server has
+' answered.
 function libraryTabs(kinds as dynamic) as object
     tabs = ["Home"]
     for each t in [["TV", "tv"], ["Movies", "movies"], ["Music", "music"], ["YouTube", "youtube"]]
         if kinds = invalid or libraryHasKind(kinds, t[1]) then tabs.Push(t[0])
     end for
+    tabs.Push("Favorites")
     tabs.Push("Search")
     return tabs
 end function
@@ -449,6 +451,34 @@ function searchSections(r as object) as object
     ' Movies, TV, music, YouTube, then people; within each, the most specific kind first.
     for each s in [["Movies", "movies", r.movies], ["TV", "shows", shows], ["Songs", "songs", r.songs], ["Albums", "albums", r.albums], ["Artists", "artists", r.artists], ["Videos", "videos", r.videos], ["Channels", "channels", r.channels], ["People", "people", r.people]]
         if s[2].Count() > 0 then out.Push({ title: s[0], kind: s[1], items: s[2] })
+    end for
+    return out
+end function
+
+' The Favorites tab's sections, as searchSections' { title, kind, items }
+' with kind naming Search's tiles: one per FavoriteKind with an item, in
+' the order Movies, Shows, Seasons, Episodes, Artists, Albums, Songs,
+' Videos. favorites is listFavorites' rows, most recently starred first;
+' items, keyed by item id, resolves them, and a row it lacks, as an item
+' gone or hidden since, is left out.
+function libraryFavoriteSections(favorites as object, items as object) as object
+    out = []
+    for each s in [["Movies", "movie", "movies"], ["Shows", "show", "shows"], ["Seasons", "season", "shows"], ["Episodes", "episode", "shows"], ["Artists", "artist", "artists"], ["Albums", "album", "albums"], ["Songs", "song", "songs"], ["Videos", "video", "videos"]]
+        list = []
+        for each f in favorites
+            item = items[f.itemId.ToStr()]
+            if f.kind = s[1] and item <> invalid then list.Push(item)
+        end for
+        if list.Count() > 0 then out.Push({ title: s[0], kind: s[2], items: list })
+    end for
+    return out
+end function
+
+' The item ids of listFavorites' rows, as a set.
+function libraryFavoriteIds(favorites as object) as object
+    out = {}
+    for each f in favorites
+        out[f.itemId.ToStr()] = true
     end for
     return out
 end function
