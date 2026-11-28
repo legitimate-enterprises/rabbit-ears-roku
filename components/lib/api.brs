@@ -18,6 +18,8 @@ function apiOperations() as object
         unlockProfile: ["POST", "/profiles/{profileId}/unlock"]
         lockDevice: ["POST", "/me/lock"]
         listFavorites: ["GET", "/profiles/{profileId}/favorites"]
+        putFavorite: ["PUT", "/profiles/{profileId}/favorites/{itemId}"]
+        deleteFavorite: ["DELETE", "/profiles/{profileId}/favorites/{itemId}"]
         listWatchStates: ["GET", "/profiles/{profileId}/watch-state"]
         listShowProgress: ["GET", "/profiles/{profileId}/show-progress"]
         getWatchState: ["GET", "/profiles/{profileId}/watch-state/{itemId}"]

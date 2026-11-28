@@ -150,15 +150,20 @@ end function
 
 ' Lays out the view's button row, row[0] its Play, with Watch together's
 ' part after it, or on a line of its own when the row would pass the
-' right margin, then the note. m.layout[0] holds the row's ids. Answers
-' how far the content below moves down.
-function togetherRow(row as object, x as integer, y as integer, width as integer) as integer
+' right margin, then the note. The buttons of after lead that part and
+' move with it. m.layout[0] holds the row's ids. Answers how far the
+' content below moves down.
+function togetherRow(row as object, x as integer, y as integer, width as integer, after = [] as object) as integer
     m.tgNodes = {}
     me = m.global.profileId
     stage = togetherStage(m.tg, me)
     since = m.tgSince.TotalMilliseconds()
     part = []
     ids = []
+    for each b in after
+        part.Push(b)
+        ids.Push(b.id)
+    end for
     if stage = "none"
         part.Push(togetherButton("together", "Watch together", "s", "users"))
         ids.Push("together")

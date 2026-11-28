@@ -10,6 +10,7 @@ sub draw()
     item = m.d.item
     m.file = m.d.file
     m.edition = invalid
+    m.favorite = m.d.favorite
     if item.kind <> "show" then togetherStart(m.top.params.item, itemTitle(item))
     if item.kind = "episode"
         drawEpisode(item)
@@ -172,7 +173,7 @@ sub drawMovie(item as object)
     m.controls.play = uiButton(m.top, "play", label, "p", 0, 0, false, "play")
     m.controls.watched = uiButton(m.top, "watched", uiPick(watched, "Mark unwatched", "Mark watched"), "s", 0, 0, false, "check")
     m.layout = [["play", "watched"]]
-    extra = togetherRow([m.controls.play, m.controls.watched], x, top + 64, 1100)
+    extra = togetherRow([m.controls.play, m.controls.watched], x, top + 64, 1100, [favoriteControl(m.top)])
     moved = neighborRow(x, top + 160 + extra)
     y = overview(item, x, top + 180 + extra + moved, 1100)
     rows = libraryCrewLines(m.d.credits.crew, m.d.credits.cast, false)
@@ -329,6 +330,7 @@ sub drawShow(item as object)
     row.Push(m.controls.shuffle)
     m.controls.watched = uiButton(m.top, "watched", uiPick(m.allWatched, "Mark all unwatched", "Mark all watched"), "s", 0, 0, false, "check")
     row.Push(m.controls.watched)
+    row.Push(favoriteControl(m.top))
     uiRow(row, x, top + 64, 24)
     y = overview(item, x, top + 180, 1100)
     uiLabel(m.top, "Seasons", 30, true, "text", x, y)
@@ -356,8 +358,8 @@ sub drawShow(item as object)
         seasonRow.Push(id)
         sx = sx + 198
     end for
-    m.layout = [["play", "shuffle", "watched"], seasonRow]
-    if nextEp = invalid then m.layout[0] = ["shuffle", "watched"]
+    m.layout = [["play", "shuffle", "watched", "favorite"], seasonRow]
+    if nextEp = invalid then m.layout[0] = ["shuffle", "watched", "favorite"]
     related = relatedRows(y + 430)
     castRow(y + 430 + related, related > 0)
     m.current = m.layout[0][0]
@@ -394,7 +396,7 @@ sub drawEpisode(item as object)
     m.controls.watched = uiButton(m.top, "watched", uiPick(watched, "Mark unwatched", "Mark watched"), "s", 0, 0, false, "check")
     row.Push(m.controls.watched)
     m.layout[0].Push("watched")
-    extra = togetherRow(row, x, top + 66, 1000)
+    extra = togetherRow(row, x, top + 66, 1000, [favoriteControl(m.top)])
     moved = neighborRow(x, top + 162 + extra)
     y = overview(item, x, top + 176 + extra + moved, 1000)
     rows = libraryCrewLines(m.d.credits.crew, m.d.credits.cast, true)
@@ -485,6 +487,8 @@ sub onSelect(id as string)
         togetherPlay(invalid)
     else if id = "start"
         togetherPlay(0)
+    else if id = "favorite"
+        favoriteToggle(item.kind, item.id)
     else if togetherSelect(id)
         return
     else if id = "watched"

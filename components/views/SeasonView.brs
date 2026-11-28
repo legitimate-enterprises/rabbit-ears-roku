@@ -37,8 +37,10 @@ sub draw()
     row.Push(m.controls.shuffle)
     m.layout[0].Push("shuffle")
     uiRow(row, 96, y + 62, 20)
-    m.controls.watched = uiButton(m.top, "watched", uiPick(m.allWatched, "Mark all unwatched", "Mark all watched"), "s", 96, y + 142, true)
-    m.layout.Push(["watched", "list"])
+    m.controls.watched = uiButton(m.top, "watched", uiPick(m.allWatched, "Mark all unwatched", "Mark all watched"), "s", 0, 0, true)
+    m.favorite = m.d.favorite
+    uiRow([m.controls.watched, favoriteControl(m.top, true)], 96, y + 142, 20)
+    m.layout.Push(["watched", "favorite", "list"])
     overview = overviewOf(season)
     if overview = "" then overview = overviewOf(m.d.show)
     l = uiLabel(m.top, overview, 26, false, "sub", 96, y + 230, 560)
@@ -92,6 +94,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     if key = "OK" and m.current = "watched"
         markAll(m.d.item, not m.allWatched)
+        return true
+    end if
+    if key = "OK" and m.current = "favorite"
+        favoriteToggle("season", m.d.item.id)
         return true
     end if
     if key = "left" and m.current = "list"

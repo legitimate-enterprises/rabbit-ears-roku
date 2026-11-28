@@ -15,7 +15,7 @@ sub onStateVersion()
 end sub
 
 sub load()
-    netLoad("video", { videoId: m.top.params.video.id }, "onVideo")
+    netLoad("video", { videoId: m.top.params.video.id, profileId: m.global.profileId }, "onVideo")
 end sub
 
 sub onVideo(event as object)
@@ -67,7 +67,8 @@ sub redraw()
     m.controls.watched = uiButton(m.top, "watched", uiPick(v.watched, "Mark unwatched", "Mark watched"), "s", 0, 0, false, "check")
     row.Push(m.controls.watched)
     m.layout[0].Push("watched")
-    extra = togetherRow(row, x, y + 62, 1000)
+    m.favorite = m.d.favorite
+    extra = togetherRow(row, x, y + 62, 1000, [favoriteControl(m.top)])
     y = y + 178 + extra
     if v.overview <> invalid
         l = uiLabel(m.top, v.overview, 28, false, "sub", x, y, 1000)
@@ -143,6 +144,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
         togetherPlay(0)
     else if key = "OK" and togetherSelect(m.current)
         return true
+    else if key = "OK" and m.current = "favorite"
+        favoriteToggle("video", v.id)
     else if key = "OK" and m.current = "watched"
         netCall("putWatchState", { profileId: m.global.profileId, itemId: v.id }, {}, { watched: not v.watched, positionMs: 0 }, "onMarked")
     else if key = "OK" and Left(m.current, 1) = "m"

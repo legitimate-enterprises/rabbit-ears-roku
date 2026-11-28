@@ -11,7 +11,7 @@ sub init()
 end sub
 
 sub load()
-    netLoad("artist", { artistId: m.top.params.artist.id }, "onArtist")
+    netLoad("artist", { artistId: m.top.params.artist.id, profileId: m.global.profileId }, "onArtist")
 end sub
 
 sub onArtist(event as object)
@@ -34,8 +34,9 @@ sub onArtist(event as object)
     uiFacts(m.page, parts, 512, 190)
     m.controls.play = uiButton(m.page, "play", "Play", "p", 0, 0, false, "play")
     m.controls.shuffle = uiButton(m.page, "shuffle", "Shuffle", "s", 0, 0, false, "shuffle")
-    uiRow([m.controls.play, m.controls.shuffle], 512, 250, 20)
-    m.rows = [["play", "shuffle"]]
+    m.favorite = r.data.favorite
+    uiRow([m.controls.play, m.controls.shuffle, favoriteControl(m.page)], 512, 250, 20)
+    m.rows = [["play", "shuffle", "favorite"]]
     y = 360
     if a.overview <> invalid
         l = uiLabel(m.page, a.overview, 28, false, "sub", 512, y, 1100)
@@ -131,6 +132,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     if key = "OK" and m.current = "chip"
         openNowPlaying()
+        return true
+    end if
+    if key = "OK" and m.current = "favorite"
+        favoriteToggle("artist", m.artist.id)
         return true
     end if
     moved = uiArrow(key)

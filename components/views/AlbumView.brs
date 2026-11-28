@@ -10,7 +10,7 @@ sub init()
 end sub
 
 sub load()
-    netLoad("album", { albumId: m.top.params.album.id }, "onAlbum")
+    netLoad("album", { albumId: m.top.params.album.id, profileId: m.global.profileId }, "onAlbum")
 end sub
 
 sub onAlbum(event as object)
@@ -40,7 +40,8 @@ sub onAlbum(event as object)
     uiFacts(m.top, parts, fx, y)
     m.controls.play = uiButton(m.top, "play", "Play", "p", 0, 0, true, "play")
     m.controls.shuffle = uiButton(m.top, "shuffle", "Shuffle", "s", 0, 0, true, "shuffle")
-    uiRow([m.controls.play, m.controls.shuffle], 96, y + 56, 20)
+    m.favorite = r.data.favorite
+    uiRow([m.controls.play, m.controls.shuffle, favoriteControl(m.top, true)], 96, y + 56, 20)
     if a.overview <> invalid
         l = uiLabel(m.top, a.overview, 26, false, "sub", 96, y + 160, 560)
         l.maxLines = 5
@@ -63,9 +64,9 @@ sub onNow()
     at = m.list.itemFocused
     m.list.content = songRows(m.songs, true)
     if at > 0 then m.list.jumpToItem = at
-    m.layout = [["play", "shuffle", "songs"]]
+    m.layout = [["play", "shuffle", "favorite", "songs"]]
     if m.global.music.now.song <> invalid
-        m.layout = [["chip"], ["play", "shuffle", "songs"]]
+        m.layout = [["chip"], ["play", "shuffle", "favorite", "songs"]]
     else if m.current = "chip"
         m.current = "play"
         if m.top.isInFocusChain() then uiFocus("play")
@@ -82,6 +83,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
         playSongs(m.songs, 0, m.album.title)
     else if key = "OK" and m.current = "shuffle" and m.songs.Count() > 0
         playSongs(m.songs, Rnd(m.songs.Count()) - 1, m.album.title, true)
+    else if key = "OK" and m.current = "favorite"
+        favoriteToggle("album", m.album.id)
     else if key = "OK" and m.current = "chip"
         openNowPlaying()
     else

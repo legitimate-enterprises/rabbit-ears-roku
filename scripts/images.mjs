@@ -86,6 +86,19 @@ const convex = (points) => (x, y) => {
 };
 // The play glyph: M6 4v16l14-8z.
 const triangle = convex([[6, 4], [6, 20], [20, 12]]);
+// A five-pointed star's corners, outer and inner in turn from the top.
+const starCorners = Array.from({ length: 10 }, (_, i) => {
+  const r = i % 2 ? 4.2 : 10;
+  const a = -Math.PI / 2 + (i * Math.PI) / 5;
+  return [12 + r * Math.cos(a), 12.8 + r * Math.sin(a)];
+});
+const starEdges = starCorners.map(([ax, ay], i) => [ax, ay, ...starCorners[(i + 1) % starCorners.length]]);
+// The filled star: inside by the even-odd rule, as the star is not convex.
+const starFill = (x, y) => {
+  const d = Math.min(...starEdges.map(([ax, ay, bx, by]) => segment(x, y, ax, ay, bx, by, 0)));
+  const inside = starEdges.reduce((odd, [ax, ay, bx, by]) => ((ay > y) !== (by > y) && x < ax + ((y - ay) * (bx - ax)) / (by - ay) ? !odd : odd), false);
+  return inside ? -d : d;
+};
 // Lines 2 units wide through each pair of points.
 const lines = (x, y, pairs) => Math.min(...pairs.map(([ax, ay, bx, by]) => segment(x, y, ax, ay, bx, by, 1)));
 const disc = (d, width) =>
@@ -193,6 +206,9 @@ const files = {
   "order.png": icon(52, (x, y) =>
     lines(x, y, [[8, 20, 8, 4], [4, 8, 8, 4], [8, 4, 12, 8], [16, 4, 16, 20], [12, 16, 16, 20], [16, 20, 20, 16]]),
   ),
+  // Favorite off and on.
+  "star.png": icon(52, (x, y) => Math.min(...starEdges.map(([ax, ay, bx, by]) => segment(x, y, ax, ay, bx, by, 1.1)))),
+  "star-fill.png": icon(52, starFill),
   "pause.png": icon(52, (x, y) => Math.min(box(x, y, 8, 12, 2, 7, 0.5), box(x, y, 16, 12, 2, 7, 0.5))),
   "stop.png": icon(52, (x, y) => box(x, y, 12, 12, 6, 6, 1)),
   // What a tile shows over its flat block until its artwork arrives, one per kind.

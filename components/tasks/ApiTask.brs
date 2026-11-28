@@ -247,6 +247,14 @@ function loadItem(a as object) as object
     return send("getItem", { itemId: a.itemId })
 end function
 
+' Whether itemId is among the profile's favorites of kind; a failed
+' listing shows it as not one.
+function favoriteOf(profileId as string, kind as string, itemId as string) as boolean
+    r = sendAll("listFavorites", { profileId: profileId }, { kind: kind })
+    if not r.ok then return false
+    return libraryFavoriteIds(r.data).DoesExist(itemId)
+end function
+
 ' A 404 means the profile has no watch state for the item yet.
 function stateOf(profileId as string, itemId as string) as dynamic
     r = send("getWatchState", { profileId: profileId, itemId: itemId })
@@ -498,7 +506,7 @@ function loadDetails(a as object) as object
     r = send("getItem", { itemId: a.itemId })
     if not r.ok then return r
     item = r.data
-    d = { item: item, credits: { cast: [], crew: [] } }
+    d = { item: item, credits: { cast: [], crew: [] }, favorite: favoriteOf(a.profileId, item.kind, item.id) }
     if item.kind = "movie" or item.kind = "show" then d.occasions = occasionsOf(a, item)
     if item.kind = "movie"
         d.states = decorStates(a.profileId)
@@ -746,7 +754,7 @@ function loadArtist(a as object) as object
     if not popular.ok then return popular
     albums = sendAll("listMusicAlbums", {}, { artistId: a.artistId, sort: "year" })
     if not albums.ok then return albums
-    return done({ artist: artist.data, popular: popular.data.items, albums: albums.data })
+    return done({ artist: artist.data, popular: popular.data.items, albums: albums.data, favorite: favoriteOf(a.profileId, "artist", a.artistId) })
 end function
 
 ' Album details: the album and its songs in disc then track order.
@@ -755,7 +763,7 @@ function loadAlbum(a as object) as object
     if not album.ok then return album
     songs = sendAll("listMusicSongs", {}, { albumId: a.albumId })
     if not songs.ok then return songs
-    return done({ album: album.data, songs: songs.data })
+    return done({ album: album.data, songs: songs.data, favorite: favoriteOf(a.profileId, "album", a.albumId) })
 end function
 
 ' Channel details: the channel and its videos newest first.
@@ -773,7 +781,7 @@ end function
 function loadVideo(a as object) as object
     r = send("getYouTubeVideo", { videoId: a.videoId })
     if not r.ok then return r
-    d = { video: r.data, file: firstFile(a.videoId), playability: invalid, more: [] }
+    d = { video: r.data, file: firstFile(a.videoId), playability: invalid, more: [], favorite: favoriteOf(a.profileId, "video", a.videoId) }
     verdict = send("checkPlayability", { itemId: a.videoId }, {}, checkedSnapshot({ auto: true }))
     if verdict.ok then d.playability = verdict.data
     more = send("listYouTubeVideos", {}, { channelId: r.data.channelId, sort: "newest", limit: 5 })
